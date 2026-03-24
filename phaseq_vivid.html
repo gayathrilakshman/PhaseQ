@@ -1,0 +1,1943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhaseQ — Signal Demodulation Visual Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═════════════════════════════════════════════════════
+   PHASEQ — VIVID TECH THEME
+   Warm white base · Electric color accents · Kinetic UI
+   Same structure, zero HTML/JS changes
+═════════════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root{
+  /* keep original var names intact */
+  --bg:#f4f6fb;--bg2:#ffffff;--ink:#0f172a;--ink2:#334155;--ink3:#64748b;
+  --border:#cbd5e1;
+
+  /* vivid accent remaps */
+  --c1:#0070f3;      --c1l:#e0f0ff;  --c1m:#60aaff;
+  --c2:#8b5cf6;      --c2l:#f0eaff;  --c2m:#c4a8fb;
+  --c3:#00c896;      --c3l:#d6fff6;  --c3m:#50e0b8;
+  --c4:#2563eb;      --c4l:#dbeafe;  --c4m:#93c5fd;
+  --c5t:#00c896;     --c5tl:#d6fff6;
+  --c5o:#f97316;     --c5ol:#ffedd5;
+  --c6:#eab308;      --c6l:#fefce8;  --c6m:#fde047;
+  --c7:#16a34a;      --c7l:#dcfce7;  --c7m:#4ade80;
+
+  --serif:'Space Grotesk',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'Space Grotesk',sans-serif;
+
+  /* new design tokens */
+  --radius:10px;
+  --card-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.06);
+  --card-shadow-hover:0 4px 8px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.1);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.6;
+}
+.app{display:flex;flex-direction:column;height:100vh}
+
+/* ── TOPBAR ─────────────────────────────────────── */
+.topbar{
+  flex-shrink:0;
+  background:linear-gradient(92deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);
+  background-size:200% 100%;
+  animation:topbar-shift 8s ease-in-out infinite;
+  padding:0 28px;
+  display:flex;align-items:center;justify-content:space-between;
+  height:58px;
+  border-bottom:2px solid #312e81;
+  position:relative;
+}
+.topbar::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,#0070f3,#8b5cf6,#00c896,#f97316,#0070f3);
+  background-size:200% 100%;
+  animation:rainbow-slide 4s linear infinite;
+}
+@keyframes topbar-shift{0%,100%{background-position:0%}50%{background-position:100%}}
+@keyframes rainbow-slide{to{background-position:-200% 0}}
+
+.logo{font-family:var(--serif);font-size:22px;font-weight:700;color:#fff;letter-spacing:-.5px}
+.logo span{
+  color:transparent;
+  background:linear-gradient(90deg,#00c896,#0070f3);
+  -webkit-background-clip:text;background-clip:text;
+  animation:logo-hue 6s linear infinite;
+}
+@keyframes logo-hue{0%{filter:hue-rotate(0deg)}100%{filter:hue-rotate(360deg)}}
+.logo-sub{font-family:var(--mono);font-size:10px;color:#6366f1;margin-left:14px;letter-spacing:1.5px;text-transform:uppercase}
+.srv{font-family:var(--mono);font-size:10px;padding:3px 12px;border-radius:20px;border:1px solid #334155;color:#64748b;transition:all .3s}
+.srv.ok{color:#00c896;border-color:#00c896;background:rgba(0,200,150,.1);box-shadow:0 0 10px rgba(0,200,150,.2);animation:srv-pulse 2s ease-in-out infinite}
+.srv.err{color:#f87171;border-color:#f87171;background:rgba(248,113,113,.08)}
+@keyframes srv-pulse{0%,100%{box-shadow:0 0 8px rgba(0,200,150,.2)}50%{box-shadow:0 0 18px rgba(0,200,150,.5)}}
+.top-meta{font-family:var(--mono);font-size:9px;color:#475569;text-align:right;line-height:2;letter-spacing:.5px}
+
+/* ── TABNAV ──────────────────────────────────────── */
+.tabnav{
+  flex-shrink:0;
+  background:#fff;
+  border-bottom:1px solid #e2e8f0;
+  display:flex;overflow-x:auto;padding:0 20px;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);
+}
+.tabnav::-webkit-scrollbar{height:0}
+.tb{
+  padding:14px 16px;
+  font-family:var(--mono);font-size:10.5px;font-weight:500;
+  color:var(--ink3);
+  background:transparent;border:none;
+  border-bottom:3px solid transparent;
+  cursor:pointer;white-space:nowrap;
+  letter-spacing:.6px;text-transform:uppercase;
+  transition:color .18s,border-color .18s;
+  margin-bottom:-1px;position:relative;
+}
+.tb::before{
+  content:attr(data-n);
+  position:absolute;top:6px;left:10px;
+  font-size:8px;color:var(--ink3);opacity:.5;
+  font-family:var(--mono);
+}
+.tb:hover{color:var(--ink2)}
+.tb.t1.on{color:var(--c1);border-color:var(--c1)}
+.tb.t2.on{color:var(--c2);border-color:var(--c2)}
+.tb.t3.on{color:var(--c3);border-color:var(--c3)}
+.tb.t4.on{color:var(--c4);border-color:var(--c4)}
+.tb.t5.on{color:var(--c5t);border-color:var(--c5t)}
+.tb.t6.on{color:var(--c6);border-color:var(--c6)}
+.tb.t7.on{color:var(--c7);border-color:var(--c7)}
+
+/* ── CONTENT ─────────────────────────────────────── */
+.content{flex:1;overflow-y:auto;background:var(--bg);scroll-behavior:smooth}
+.content::-webkit-scrollbar{width:4px}
+.content::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.tp{display:none}.tp.on{display:block}
+
+/* ── TAB BG THEMES (vivid gradients) ── */
+.tp.t1-bg{background:linear-gradient(150deg,#dbeafe 0%,#f4f6fb 280px)}
+.tp.t2-bg{background:linear-gradient(150deg,#ede9fe 0%,#f4f6fb 280px)}
+.tp.t3-bg{background:linear-gradient(150deg,#d1fae5 0%,#f4f6fb 280px)}
+.tp.t4-bg{background:linear-gradient(150deg,#dbeafe 0%,#f4f6fb 280px)}
+.tp.t5-bg{background:linear-gradient(150deg,#d1fae5 0%,#f4f6fb 280px)}
+.tp.t6-bg{background:linear-gradient(150deg,#fef9c3 0%,#f4f6fb 280px)}
+.tp.t7-bg{background:linear-gradient(150deg,#dcfce7 0%,#f4f6fb 280px)}
+
+/* ── TAB HERO ─────────────────────────────────────── */
+.tab-hero{padding:22px 28px 0}
+.tab-hero h2{
+  font-family:var(--serif);font-size:28px;font-weight:700;
+  margin-bottom:5px;letter-spacing:-.3px;
+  animation:hero-in .3s ease both;
+}
+.tab-hero p{
+  font-size:14px;color:var(--ink2);max-width:680px;line-height:1.75;
+  padding-bottom:18px;border-bottom:1px solid var(--border);margin-bottom:20px;
+  animation:hero-in .35s .05s ease both;opacity:0;animation-fill-mode:forwards;
+}
+@keyframes hero-in{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+.tab-body{padding:0 28px 36px}
+
+/* ── CARDS ────────────────────────────────────────── */
+.card{
+  background:#fff;
+  border:1.5px solid var(--border);
+  border-radius:var(--radius);
+  padding:22px;margin-bottom:18px;
+  box-shadow:var(--card-shadow);
+  transition:transform .18s,box-shadow .18s;
+  animation:card-in .3s ease both;
+  position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:transparent;transition:background .2s;
+}
+.card:hover{transform:translateY(-2px);box-shadow:var(--card-shadow-hover)}
+.card:hover::before{background:linear-gradient(90deg,var(--c1),var(--c2))}
+.card.al{border-left-width:4px}
+@keyframes card-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.tp.on .card:nth-child(1){animation-delay:.03s}
+.tp.on .card:nth-child(2){animation-delay:.07s}
+.tp.on .card:nth-child(3){animation-delay:.11s}
+.tp.on .card:nth-child(4){animation-delay:.15s}
+.tp.on .card:nth-child(5){animation-delay:.19s}
+.tp.on .card:nth-child(6){animation-delay:.23s}
+
+/* ── CARD HEADINGS ───────────────────────────────── */
+.ch{font-family:var(--serif);font-size:19px;font-weight:700;margin-bottom:5px;letter-spacing:-.2px}
+.cs{font-size:13px;color:var(--ink2);margin-bottom:14px;line-height:1.65}
+
+/* ── GRIDS ────────────────────────────────────────── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+@media(max-width:960px){.g2,.g3{grid-template-columns:1fr}}
+
+/* ── CONTROL BAR ─────────────────────────────────── */
+.cbar{
+  background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);
+  padding:18px 22px;margin-bottom:18px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px;
+  box-shadow:var(--card-shadow);
+  animation:card-in .22s ease both;
+}
+.ct{display:flex;flex-direction:column;gap:7px}
+.ct label{font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.7px;text-transform:uppercase;font-weight:500}
+.cr{display:flex;align-items:center;gap:10px}
+.cr input[type=range]{
+  flex:1;cursor:pointer;height:5px;
+  -webkit-appearance:none;
+  background:linear-gradient(to right,currentColor var(--fill,0%),#e2e8f0 var(--fill,0%));
+  border-radius:3px;outline:none;transition:background .1s;
+}
+.cr input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  cursor:pointer;border:3px solid #fff;
+  box-shadow:0 0 0 2px currentColor,0 2px 6px rgba(0,0,0,.15);
+  transition:transform .12s;
+}
+.cr input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.15)}
+.vl{
+  font-family:var(--mono);font-size:12px;font-weight:600;
+  min-width:54px;text-align:right;
+}
+.ct input[type=text]{
+  background:var(--bg);border:1.5px solid var(--border);
+  border-radius:6px;padding:9px 13px;color:var(--ink);
+  font-family:var(--mono);font-size:18px;width:100%;
+  outline:none;letter-spacing:4px;
+  transition:border-color .2s,box-shadow .2s;
+}
+.ct input[type=text]:focus{border-color:var(--c2);box-shadow:0 0 0 3px rgba(139,92,246,.12)}
+.mbtns{display:flex;gap:6px;flex-wrap:wrap}
+.mb{
+  padding:7px 18px;border-radius:20px;border:1.5px solid var(--border);
+  background:var(--bg);color:var(--ink2);font-family:var(--mono);font-size:12px;
+  cursor:pointer;transition:all .15s;font-weight:500;
+  position:relative;overflow:hidden;
+}
+.mb:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.1)}
+.mb.on{font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+
+/* ── SCOPE (oscilloscope) ───────────────────────── */
+.scope{
+  background:linear-gradient(180deg,#050f0a 0%,#071410 100%);
+  border:2px solid #1a2e22;
+  border-radius:6px;overflow:hidden;position:relative;
+}
+.scope canvas{display:block;width:100%!important}
+.slbl{
+  position:absolute;top:7px;left:9px;
+  font-family:var(--mono);font-size:9px;color:#2a6a3a;
+  letter-spacing:1.5px;z-index:2;text-transform:uppercase;font-weight:600;
+}
+/* scan line sweep */
+.scope::after{
+  content:'';position:absolute;left:0;width:100%;height:4px;
+  background:linear-gradient(transparent,rgba(0,200,140,.18),transparent);
+  animation:scan 2.2s linear infinite;pointer-events:none;z-index:3;top:-4px;
+}
+@keyframes scan{to{top:110%}}
+
+/* ── FFT ─────────────────────────────────────────── */
+.fft-c{
+  background:linear-gradient(180deg,#08091c 0%,#0b0c22 100%);
+  border:2px solid #1a1b3a;border-radius:6px;overflow:hidden;position:relative;
+}
+.fft-c canvas{display:block;width:100%!important}
+.flbl{
+  position:absolute;top:7px;left:9px;
+  font-family:var(--mono);font-size:9px;color:#3a3a9a;
+  letter-spacing:1.5px;z-index:2;text-transform:uppercase;font-weight:600;
+}
+
+.sig-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.pair-lbl{font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;font-weight:600}
+
+/* ── STATS ───────────────────────────────────────── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-top:14px}
+.stat{
+  border-radius:8px;padding:12px;text-align:center;
+  border:1.5px solid var(--border);background:var(--bg);
+  transition:transform .15s,box-shadow .15s,border-color .2s;
+  cursor:default;
+}
+.stat:hover{transform:scale(1.04);box-shadow:0 4px 16px rgba(0,0,0,.1);background:#fff}
+.sl{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-bottom:5px;letter-spacing:.7px;text-transform:uppercase;font-weight:600}
+.sv{font-family:var(--mono);font-size:20px;font-weight:600;line-height:1}
+@keyframes sv-pop{0%{transform:scale(1.2);opacity:.5}100%{transform:scale(1);opacity:1}}
+.sv.pop{animation:sv-pop .3s cubic-bezier(.34,1.56,.64,1)}
+
+/* ── CALC PANEL ──────────────────────────────────── */
+.calc-panel{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:10px;padding:16px;border-radius:var(--radius);border:1.5px solid;
+  margin-bottom:18px;animation:card-in .26s ease both;
+}
+.ci{text-align:center;padding:6px 4px;border-radius:6px;transition:background .2s}
+.ci:hover{background:rgba(255,255,255,.6)}
+.cl{font-family:var(--mono);font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px;font-weight:600}
+.cv{font-family:var(--mono);font-size:21px;font-weight:600;line-height:1}
+@keyframes cv-pop{from{transform:scale(1.12);opacity:.6}to{transform:scale(1);opacity:1}}
+.cv.pop{animation:cv-pop .3s ease}
+.cu{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:2px}
+
+/* ── EXPL BLOCKS ─────────────────────────────────── */
+.expl{
+  border-left:4px solid;padding:13px 17px;
+  border-radius:0 8px 8px 0;font-size:13px;color:var(--ink2);
+  line-height:1.9;margin-top:12px;
+}
+.expl strong{color:var(--ink);font-weight:600}
+
+/* ── TAG PILLS ───────────────────────────────────── */
+.tag{
+  display:inline-block;font-family:var(--mono);font-size:9px;
+  padding:3px 10px;border-radius:20px;margin-bottom:9px;
+  font-weight:700;letter-spacing:.7px;text-transform:uppercase;border:1px solid;
+}
+
+/* ── PATH LABEL ──────────────────────────────────── */
+.pl{
+  font-family:var(--mono);font-size:10px;font-weight:700;
+  letter-spacing:1.2px;text-transform:uppercase;
+  padding:9px 16px;border-radius:6px;margin-bottom:12px;border:1.5px solid;
+}
+
+/* ── BIT vs QUBIT ────────────────────────────────── */
+.bvq{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:14px}
+.bvq-box{border-radius:10px;padding:22px;border:1.5px solid;text-align:center;transition:transform .18s}
+.bvq-box:hover{transform:translateY(-3px)}
+.bvq-lbl{font-family:var(--mono);font-size:10px;margin-bottom:14px;letter-spacing:1px;text-transform:uppercase;font-weight:700}
+.bc{
+  width:64px;height:64px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:26px;font-weight:700;font-family:var(--mono);margin:4px;
+  transition:transform .15s;
+}
+.bc:hover{transform:scale(1.12)}
+.qs-spin{
+  width:64px;height:64px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:19px;font-weight:600;font-family:var(--mono);margin:4px;
+  border:2px dashed;animation:qspin 3s linear infinite;
+}
+
+/* ── HISTOGRAM ───────────────────────────────────── */
+.hist{display:flex;flex-direction:column;gap:10px;padding:6px 0}
+.hrow{display:flex;align-items:center;gap:10px}
+.hlbl{font-family:var(--mono);font-size:15px;font-weight:600;min-width:34px}
+.htrack{flex:1;background:var(--bg);border-radius:4px;height:32px;overflow:hidden;border:1.5px solid var(--border)}
+.hfill{
+  height:100%;border-radius:3px;transition:width .6s cubic-bezier(.34,1.2,.64,1);
+  display:flex;align-items:center;padding-left:12px;
+  font-size:13px;font-weight:600;font-family:var(--mono);color:#fff;
+  position:relative;overflow:hidden;
+}
+/* animated sheen on histogram bars */
+.hfill::after{
+  content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);
+  animation:sheen 2.4s ease-in-out infinite;
+}
+@keyframes sheen{0%{left:-60%}100%{left:120%}}
+
+/* ── COLLAPSE ────────────────────────────────────── */
+.col-box{text-align:center;padding:20px 0 4px}
+.col-res{
+  font-size:56px;font-weight:700;font-family:var(--mono);line-height:1;
+  transition:all .3s;
+}
+.col-msg{font-size:12px;color:var(--ink3);margin-top:8px;font-family:var(--mono)}
+
+/* ── TABLE ───────────────────────────────────────── */
+.ctbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.ctbl th{
+  padding:11px 14px;text-align:left;font-family:var(--mono);font-size:10px;
+  letter-spacing:1px;text-transform:uppercase;color:var(--ink3);
+  border-bottom:2px solid var(--ink);
+}
+.ctbl td{padding:11px 14px;border-bottom:1px solid var(--border);line-height:1.5;transition:background .15s}
+.ctbl tr:hover td{background:rgba(0,0,0,.02)}
+.ctbl td:first-child{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+
+/* ── RECOVERED MESSAGE ───────────────────────────── */
+.rec-msg{
+  font-family:var(--serif);font-size:48px;font-weight:700;
+  text-align:center;padding:22px;letter-spacing:10px;
+  border-radius:var(--radius);border:2px solid;margin-bottom:14px;
+  transition:all .35s;
+}
+@keyframes msg-reveal{from{letter-spacing:3px;opacity:.4}to{letter-spacing:10px;opacity:1}}
+.rec-msg.pop{animation:msg-reveal .4s ease}
+
+/* ── SPLIT DIAGRAM ───────────────────────────────── */
+.split-diag{display:flex;align-items:center;justify-content:center;padding:24px 0;flex-wrap:wrap;gap:14px}
+.sp-box{
+  border-radius:8px;padding:12px 20px;font-family:var(--mono);font-size:13px;
+  font-weight:600;border:2px solid;text-align:center;
+  transition:transform .15s,box-shadow .15s;
+}
+.sp-box:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.1)}
+
+/* ── BIN DISPLAY ─────────────────────────────────── */
+.bin{
+  font-family:var(--mono);font-size:14px;letter-spacing:3px;
+  padding:13px 16px;background:var(--bg);border-radius:6px;
+  border:1.5px solid var(--border);word-break:break-all;
+  line-height:2.4;min-height:56px;
+}
+
+/* ── ANIMATION CANVASES ─────────────────────────── */
+.anim-canvas{
+  display:block;width:100%;border-radius:8px;
+  border:1.5px solid var(--border);background:#fafbff;
+}
+.anim-wrap{border-radius:8px;overflow:hidden;margin-bottom:14px;border:1.5px solid var(--border)}
+
+/* ── QUANTUM STATE CHANGE ────────────────────────── */
+.qsc-wrap{display:grid;grid-template-columns:1fr auto 1fr;gap:0;align-items:stretch;border-radius:8px;overflow:hidden;border:1.5px solid var(--border)}
+.qsc-panel{background:#f8f9ff;padding:16px;text-align:center}
+.qsc-label{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.qsc-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0f172a;padding:0 8px;min-width:80px}
+
+/* ── BUTTONS ─────────────────────────────────────── */
+button{position:relative;overflow:hidden;cursor:pointer;transition:transform .12s,box-shadow .12s}
+button:active{transform:scale(.97)}
+button .ripple{
+  position:absolute;border-radius:50%;
+  background:rgba(255,255,255,.3);
+  transform:scale(0);
+  animation:ripple-anim .55s linear;pointer-events:none;
+}
+@keyframes ripple-anim{to{transform:scale(5);opacity:0}}
+
+/* ── GLOBAL KEYFRAMES ────────────────────────────── */
+@keyframes qspin{0%{transform:rotate(0deg);opacity:.65}50%{opacity:1}100%{transform:rotate(360deg);opacity:.65}}
+@keyframes flash{0%,100%{opacity:1}50%{opacity:.08}}
+.flash{animation:flash .5s ease 3}
+@keyframes bit-flow{0%{transform:translateX(-100%);opacity:0}20%{opacity:1}80%{opacity:1}100%{transform:translateX(100%);opacity:0}}
+@keyframes pulse-ring{0%{transform:scale(1);opacity:.8}100%{transform:scale(2);opacity:0}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="topbar">
+  <div style="display:flex;align-items:baseline">
+    <div class="logo">Phase<span>Q</span></div>
+    <div class="logo-sub">SIGNAL DEMODULATION VISUAL LAB · QtHack04 · Problem #17</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <div id="srv" class="srv err">● CONNECTING</div>
+    <div class="top-meta">Python · Flask · Qiskit<br>HTML · Canvas</div>
+  </div>
+</div>
+
+<div class="tabnav">
+  <button class="tb t1" onclick="goTab(0)">01 · Message &amp; Binary</button>
+  <button class="tb t2" onclick="goTab(1)">02 · Quantum State</button>
+  <button class="tb t3" onclick="goTab(2)">03 · Modulation</button>
+  <button class="tb t4" onclick="goTab(3)">04 · Beam Splitter &amp; Noise</button>
+  <button class="tb t5" onclick="goTab(4)">05 · Demodulation</button>
+  <button class="tb t6" onclick="goTab(5)">06 · Filtering</button>
+  <button class="tb t7" onclick="goTab(6)">07 · Message Received</button>
+</div>
+
+<div class="content">
+
+<!-- ══ TAB 1 — MESSAGE ══ -->
+<div class="tp t1-bg" id="tp0">
+<div class="tab-hero"><h2 style="color:var(--c1)">Message & Binary Encoding</h2><p>Every message converts to binary — a stream of 1s and 0s. Watch the bits flow from your text input into the electrical pulse train, ready for modulation.</p></div>
+<div class="tab-body">
+  <div class="g2">
+    <div class="card al" style="border-left-color:var(--c1)">
+      <div class="ch">Your message</div>
+      <div class="cs">Type up to 10 characters. Each character → 8 binary bits.</div>
+      <div class="ct"><label>Message input</label><input type="text" id="msg" value="HELLO" maxlength="10" oninput="onMsg()" style="border-color:var(--c1m);font-size:20px"></div>
+      <div class="stats">
+        <div class="stat" style="border-color:var(--c1m);background:var(--c1l)"><div class="sl">chars</div><div class="sv" style="color:var(--c1)" id="s-ch">5</div></div>
+        <div class="stat" style="border-color:var(--c1m);background:var(--c1l)"><div class="sl">total bits</div><div class="sv" style="color:var(--c1)" id="s-tb">40</div></div>
+        <div class="stat" style="border-color:var(--c1m);background:var(--c1l)"><div class="sl">ones</div><div class="sv" style="color:var(--c3)" id="s-1">0</div></div>
+        <div class="stat" style="border-color:var(--c1m);background:var(--c1l)"><div class="sl">zeros</div><div class="sv" style="color:var(--ink3)" id="s-0">0</div></div>
+      </div>
+    </div>
+    <div class="card al" style="border-left-color:var(--c1)">
+      <div class="ch">Binary output</div>
+      <div class="cs"><span style="color:var(--c3);font-weight:600">1</span> = high pulse · <span style="color:var(--ink3)">0</span> = low · 8 bits = one character</div>
+      <div class="bin" id="bin-out" style="font-size:16px">—</div>
+    </div>
+  </div>
+
+  <!-- MESSAGE → BITS ANIMATION -->
+  <div class="card al" style="border-left-color:var(--c1)">
+    <div class="ch">Message → Bits → Waveform</div>
+    <div class="cs">Watch your message transform: characters become binary bits, bits become electrical pulses.</div>
+    <canvas id="c-msg-anim" class="anim-canvas" height="120"></canvas>
+  </div>
+
+  <div class="card al" style="border-left-color:var(--c1)">
+    <div class="ch">Pulse train — live waveform</div>
+    <div class="cs">Binary 1s are high voltage pulses, 0s stay low. This is your message in electrical form.</div>
+    <div class="scope" style="height:130px"><div class="slbl">CH1 · BASEBAND PULSE TRAIN</div><canvas id="c-pulse" height="130"></canvas></div>
+  </div>
+
+  <div class="card al" style="border-left-color:var(--c2)">
+    <div class="ch">Classical bit vs Qubit</div>
+    <div class="bvq">
+      <div class="bvq-box" style="border-color:var(--c1m);background:var(--c1l)">
+        <div class="bvq-lbl" style="color:var(--c1)">Classical Bit</div>
+        <div><span class="bc" style="border:3px solid var(--ink3);color:var(--ink3)">0</span><span class="bc" style="border:3px solid var(--c1);color:var(--c1)">1</span></div>
+        <div style="font-size:15px;color:var(--ink2);margin-top:12px;line-height:1.7">Always exactly 0 or 1. Like a light switch — fully off or fully on.</div>
+      </div>
+      <div class="bvq-box" style="border-color:var(--c2m);background:var(--c2l)">
+        <div class="bvq-lbl" style="color:var(--c2)">Qubit</div>
+        <div><span class="qs-spin" style="border-color:var(--c2);color:var(--c2)">|0⟩</span><span class="qs-spin" style="border-color:var(--c5o);color:var(--c5o);animation-delay:1.5s">|1⟩</span></div>
+        <div style="font-size:15px;color:var(--ink2);margin-top:12px;line-height:1.7">Can be |0⟩, |1⟩, or both simultaneously. Collapses only when measured.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ TAB 2 — QUANTUM STATE ══ -->
+<div class="tp t2-bg" id="tp1">
+<div class="tab-hero"><h2 style="color:var(--c2)">Quantum State Change</h2><p>A qubit on the Bloch sphere. Adjust θ and φ to set its state. Run a Qiskit measurement to see how shots distribute. The quantum state change visual below shows how noise corrupts the state during transmission.</p></div>
+<div class="tab-body">
+  <div class="cbar" style="border-color:var(--c2m)">
+    <div class="ct"><label style="color:var(--c2)">θ — polar (0°=|0⟩ · 90°=superposition · 180°=|1⟩)</label><div class="cr"><input type="range" id="q-th" min="0" max="180" step="1" value="30" style="accent-color:var(--c2)" oninput="onQSlider()"><span class="vl" style="color:var(--c2)" id="q-th-v">30°</span></div></div>
+    <div class="ct"><label style="color:var(--c2)">φ — azimuthal (phase around equator)</label><div class="cr"><input type="range" id="q-ph" min="0" max="360" step="5" value="0" style="accent-color:var(--c2)" oninput="onQSlider()"><span class="vl" style="color:var(--c2)" id="q-ph-v">0°</span></div></div>
+    <div class="ct"><label style="color:var(--c2)">Noise for state change visual</label><div class="cr"><input type="range" id="q-noise" min="0" max="1" step="0.05" value="0.3" style="accent-color:var(--c5o)" oninput="onQSlider()"><span class="vl" style="color:var(--c5o)" id="q-noise-v">0.30</span></div></div>
+    <div class="ct"><label style="color:var(--c2)">Shots</label><div class="cr"><input type="range" id="q-sh" min="20" max="500" step="10" value="100" style="accent-color:var(--c2)" oninput="document.getElementById('q-sh-v').textContent=this.value"><span class="vl" style="color:var(--c2)" id="q-sh-v">100</span></div></div>
+    <div class="ct"><label style="color:var(--c2)">Qiskit measurement</label><button onclick="runQiskit()" style="padding:10px;background:var(--c2l);border:2px solid var(--c2);color:var(--c2);border-radius:6px;font-family:var(--mono);font-size:13px;font-weight:600;cursor:pointer;width:100%;transition:all .15s">▶ Run measurement</button></div>
+  </div>
+
+  <!-- QUANTUM STATE CHANGE VISUAL -->
+  <div class="card al" style="border-left-color:var(--c2)">
+    <div class="ch">Quantum state change — modulation → noise → demodulation</div>
+    <div class="cs">Left: qubit state entering modulation. Middle: noise channel corrupting the signal. Right: state arriving at demodulation — shifted by noise. More noise = greater drift from original state.</div>
+    <canvas id="c-qsc" class="anim-canvas" height="240" style="background:#0a0a14"></canvas>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px">
+      <div class="stat" style="border-color:var(--c3m);background:var(--c3l)"><div class="sl">Input state</div><div class="sv" style="color:var(--c3);font-size:14px" id="qsc-in">|0⟩ near</div></div>
+      <div class="stat" style="border-color:var(--c5o);background:var(--c5ol)"><div class="sl">Noise level</div><div class="sv" style="color:var(--c5o);font-size:14px" id="qsc-noise">0.30</div></div>
+      <div class="stat" style="border-color:var(--c2m);background:var(--c2l)"><div class="sl">Output state</div><div class="sv" style="color:var(--c2);font-size:14px" id="qsc-out">shifted</div></div>
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="card al" style="border-left-color:var(--c2)">
+      <span class="tag" style="color:var(--c2);border-color:var(--c2);background:var(--c2l)">Bloch Sphere</span>
+      <div class="ch">Qubit state</div>
+      <div class="cs">North = |0⟩ · South = |1⟩ · Equator = superposition</div>
+      <canvas id="bloch" height="250" style="display:block;width:100%"></canvas>
+      <div class="stats">
+        <div class="stat" style="border-color:var(--c3m);background:var(--c3l)"><div class="sl">Prob |0⟩</div><div class="sv" style="color:var(--c3)" id="q-p0">—</div></div>
+        <div class="stat" style="border-color:#f5c9a8;background:var(--c5ol)"><div class="sl">Prob |1⟩</div><div class="sv" style="color:var(--c5o)" id="q-p1">—</div></div>
+      </div>
+    </div>
+    <div class="card al" style="border-left-color:var(--c2)">
+      <span class="tag" style="color:var(--c2);border-color:var(--c2);background:var(--c2l)">Histogram</span>
+      <div class="ch">Shot results</div>
+      <div class="cs">Same qubit run many times. Distribution reveals the probabilities.</div>
+      <div class="hist">
+        <div class="hrow"><span class="hlbl" style="color:var(--c3)">|0⟩</span><div class="htrack"><div class="hfill" id="h0" style="width:50%;background:var(--c3)">—</div></div></div>
+        <div class="hrow"><span class="hlbl" style="color:var(--c5o)">|1⟩</span><div class="htrack"><div class="hfill" id="h1" style="width:50%;background:var(--c5o)">—</div></div></div>
+      </div>
+      <div class="col-box">
+        <div class="col-res" id="col-res" style="color:var(--c2)">—</div>
+        <div class="col-msg" id="col-msg">Press "Run measurement" to collapse</div>
+      </div>
+    </div>
+    <div class="card al" style="border-left-color:var(--c2)">
+      <span class="tag" style="color:var(--c2);border-color:var(--c2);background:var(--c2l)">IQ Plane</span>
+      <div class="ch">|0⟩ and |1⟩ clusters</div>
+      <div class="cs">Each dot = one shot. Dashed line = decision boundary.</div>
+      <canvas id="c-qiq" height="250" style="display:block;width:100%"></canvas>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ TAB 3 — MODULATION ══ -->
+<div class="tp t3-bg" id="tp2">
+<div class="tab-hero"><h2 style="color:var(--c3)">Modulation</h2><p>Modulation stamps your message onto a carrier wave. The visual below shows the combination process. Time domain and FFT spectrum reveal the waveform shape and frequency structure for each mode.</p></div>
+<div class="tab-body">
+  <div class="cbar" style="border-color:var(--c3m)">
+    <div class="ct"><label style="color:var(--c3)">Carrier frequency</label><div class="cr"><input type="range" id="f-car" min="5" max="20" step="1" value="10" style="accent-color:var(--c3)" oninput="onMod()"><span class="vl" style="color:var(--c3)" id="f-car-v">10 Hz</span></div></div>
+    <div class="ct"><label style="color:var(--c3)">Amplitude</label><div class="cr"><input type="range" id="f-amp" min="0.2" max="1" step="0.1" value="1" style="accent-color:var(--c3)" oninput="onMod()"><span class="vl" style="color:var(--c3)" id="f-amp-v">1.0</span></div></div>
+    <div class="ct"><label style="color:var(--c3)">Modulation type</label>
+      <div class="mbtns">
+        <button class="mb on" id="mb-AM" onclick="setMT('AM',this)" style="border-color:var(--c3);color:var(--c3);background:var(--c3l)">AM</button>
+        <button class="mb" id="mb-FM" onclick="setMT('FM',this)">FM</button>
+        <button class="mb" id="mb-PM" onclick="setMT('PM',this)">PM</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVE CALC -->
+  <div class="calc-panel" style="border-color:var(--c3m);background:var(--c3l)">
+    <div class="ci"><div class="cl">Carrier freq</div><div class="cv" style="color:var(--c3)" id="lc-fc">10</div><div class="cu">Hz</div></div>
+    <div class="ci"><div class="cl">Bandwidth</div><div class="cv" style="color:var(--c3)" id="lc-bw">20</div><div class="cu">Hz</div></div>
+    <div class="ci"><div class="cl">Mod index</div><div class="cv" style="color:var(--c3)" id="lc-mi">1.00</div><div class="cu">—</div></div>
+    <div class="ci"><div class="cl">Signal power</div><div class="cv" style="color:var(--c3)" id="lc-sp">0.500</div><div class="cu">W</div></div>
+    <div class="ci"><div class="cl">Bit rate</div><div class="cv" style="color:var(--c3)" id="lc-br">10</div><div class="cu">bps</div></div>
+    <div class="ci"><div class="cl">Spectral eff</div><div class="cv" style="color:var(--c3)" id="lc-se">0.50</div><div class="cu">bps/Hz</div></div>
+  </div>
+
+  <!-- MODULATION ANIMATION -->
+  <div class="card al" style="border-left-color:var(--c3)">
+    <div class="ch">Modulation — signal combination visual</div>
+    <div class="cs">Watch the baseband message wave physically combine with the carrier to produce the modulated output. The type of combination changes with AM / FM / PM.</div>
+    <canvas id="c-mod-anim" class="anim-canvas" height="160" style="background:#f0faf8"></canvas>
+  </div>
+
+  <div class="g3">
+    <div class="card al" style="border-left-color:var(--c3)">
+      <span class="tag" style="color:var(--c3);border-color:var(--c3);background:var(--c3l)">Input</span>
+      <div class="ch">Baseband signal</div>
+      <div class="cs">Your message pulse train — raw information.</div>
+      <div class="sig-pair">
+        <div><div class="pair-lbl">Time</div><div class="scope" style="height:120px"><div class="slbl">TIME</div><canvas id="wf-base" height="120"></canvas></div></div>
+        <div><div class="pair-lbl">Spectrum</div><div class="fft-c" style="height:120px"><div class="flbl">FFT</div><canvas id="ff-base" height="120"></canvas></div></div>
+      </div>
+    </div>
+    <div class="card al" style="border-left-color:var(--c3)">
+      <span class="tag" style="color:var(--c3);border-color:var(--c3);background:var(--c3l)">Carrier</span>
+      <div class="ch">Carrier wave</div>
+      <div class="cs">High-frequency vehicle. Single FFT spike at carrier frequency.</div>
+      <div class="sig-pair">
+        <div><div class="pair-lbl">Time</div><div class="scope" style="height:120px"><div class="slbl">TIME</div><canvas id="wf-car" height="120"></canvas></div></div>
+        <div><div class="pair-lbl">Spectrum</div><div class="fft-c" style="height:120px"><div class="flbl">FFT</div><canvas id="ff-car" height="120"></canvas></div></div>
+      </div>
+    </div>
+    <div class="card al" style="border-left-color:var(--c3)">
+      <span class="tag" style="color:var(--c3);border-color:var(--c3);background:var(--c3l)">Output</span>
+      <div class="ch">Modulated signal</div>
+      <div class="cs" id="mod-sub">AM: sidebands appear around carrier in FFT.</div>
+      <div class="sig-pair">
+        <div><div class="pair-lbl">Time</div><div class="scope" style="height:120px"><div class="slbl">TIME</div><canvas id="wf-mod" height="120"></canvas></div></div>
+        <div><div class="pair-lbl">Spectrum</div><div class="fft-c" style="height:120px"><div class="flbl">FFT</div><canvas id="ff-mod" height="120"></canvas></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card al" style="border-left-color:var(--c3)">
+    <div class="ch">Modulation types — FFT explained</div>
+    <div class="expl" style="border-left-color:var(--c3);background:var(--c3l)"><strong>AM:</strong> Carrier height changes with message. FFT shows sidebands symmetrically around the carrier spike. Bandwidth = 2 × message frequency.</div>
+    <div class="expl" style="border-left-color:var(--c5o);background:var(--c5ol);margin-top:10px"><strong>FM:</strong> Carrier frequency changes. FFT shows wider energy spread — multiple sidebands. Bandwidth ≈ 2(Δf + fm) by Carson's rule. More noise-resistant.</div>
+    <div class="expl" style="border-left-color:var(--c2);background:var(--c2l);margin-top:10px"><strong>PM:</strong> Phase shifts at bit transitions. FFT similar to FM. Used in quantum — qubit state encoded as phase shift in microwave readout pulse.</div>
+  </div>
+</div>
+</div>
+
+<!-- ══ TAB 4 — BEAM SPLITTER ══ -->
+<div class="tp t4-bg" id="tp3">
+<div class="tab-hero"><h2 style="color:var(--c4)">Beam Splitter & Noise</h2><p>The modulated signal splits into two identical copies — one for each demodulation path. Noise enters the channel here. Watch both the signal and its spectrum degrade.</p></div>
+<div class="tab-body">
+  <div class="cbar" style="border-color:var(--c4m)">
+    <div class="ct"><label style="color:var(--c4)">Noise level</label><div class="cr"><input type="range" id="noise" min="0" max="0.6" step="0.02" value="0" style="accent-color:var(--c4)" oninput="onNoise()"><span class="vl" style="color:var(--c4)" id="noise-v">0.00</span></div></div>
+    <div class="ct"><label style="color:var(--c4)">SNR</label><div class="cr"><div class="vl" id="snr-v" style="font-size:20px;min-width:80px;color:var(--c7)">99 dB</div></div></div>
+  </div>
+  <div class="card al" style="border-left-color:var(--c4)">
+    <div class="ch">Beam splitter</div>
+    <div class="split-diag">
+      <div class="sp-box" style="border-color:var(--c3);color:var(--c3);background:var(--c3l)">Modulated<br>signal in</div>
+      <div style="font-size:26px;color:var(--ink3)">→</div>
+      <div class="sp-box" style="border-color:var(--c6);color:var(--c6);background:var(--c6l);min-width:110px;font-size:15px">Beam<br>Splitter<br><span style="font-size:11px;color:var(--ink3)">50 : 50</span></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px;color:var(--ink3)">↗</span><div class="sp-box" style="border-color:var(--c3);color:var(--c3);background:var(--c3l)">Copy A → Homodyne</div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px;color:var(--ink3)">↘</span><div class="sp-box" style="border-color:var(--c5o);color:var(--c5o);background:var(--c5ol)">Copy B → Heterodyne</div></div>
+      </div>
+    </div>
+    <div class="expl" style="border-left-color:var(--c4);background:var(--c4l)"><strong>Beam splitter:</strong> A half-silvered mirror (optics) or directional coupler (RF/microwave). Creates two perfect copies of the signal — each at half power. Both demodulation paths run simultaneously from the same original signal.</div>
+  </div>
+  <div class="g2">
+    <div class="card al" style="border-left-color:var(--c3)">
+      <span class="tag" style="color:var(--c3);border-color:var(--c3);background:var(--c3l)">Before noise</span>
+      <div class="ch">Clean signal</div>
+      <div class="scope" style="height:140px"><div class="slbl">CLEAN</div><canvas id="wf-clean" height="140"></canvas></div>
+    </div>
+    <div class="card al" style="border-left-color:var(--c5o)">
+      <span class="tag" style="color:var(--c5o);border-color:var(--c5o);background:var(--c5ol)">After noise</span>
+      <div class="ch">Noisy signal</div>
+      <div class="scope" style="height:140px"><div class="slbl">NOISY</div><canvas id="wf-noisy" height="140"></canvas></div>
+    </div>
+  </div>
+  <div class="card al" style="border-left-color:var(--c4)">
+    <div class="expl" style="border-left-color:var(--c4);background:var(--c4l);margin-top:0"><strong>SNR in dB</strong> measures how much stronger your signal is vs the noise. 99 dB = perfect. 30 dB = good. 15 dB = noisy. Below 10 dB = bits start flipping. The noise floor rises in the frequency spectrum as noise increases.</div>
+  </div>
+</div>
+</div>
+
+<!-- ══ TAB 5 — DEMODULATION ══ -->
+<div class="tp t5-bg" id="tp4">
+<div class="tab-hero"><h2 style="color:var(--c5t)">Demodulation</h2><p>Each path mixes the signal with a Local Oscillator. The animated signal chain below shows the mixing process visually — two waves colliding, the beat forming, the output emerging.</p></div>
+<div class="tab-body">
+  <div class="cbar" style="border-color:var(--c3m)">
+    <div class="ct"><label style="color:var(--c5t)">Phase difference — homodyne LO</label><div class="cr"><input type="range" id="phase" min="0" max="360" step="5" value="0" style="accent-color:var(--c5t)" oninput="onDemod()"><span class="vl" style="color:var(--c5t)" id="phase-v">0°</span></div></div>
+    <div class="ct"><label style="color:var(--c5o)">LO offset — IF frequency (heterodyne)</label><div class="cr"><input type="range" id="lo-off" min="0.5" max="4" step="0.5" value="1" style="accent-color:var(--c5o)" oninput="onDemod()"><span class="vl" style="color:var(--c5o)" id="lo-off-v">1 Hz</span></div></div>
+  </div>
+
+  <!-- DEMODULATION ANIMATION -->
+  <div class="card al" style="border-left-color:var(--c5t)">
+    <div class="ch">Demodulation — signal chain visual</div>
+    <div class="cs">The animated flow shows: incoming signal → LO reference → mixer collision → filtered output. Teal = homodyne path · Orange = heterodyne path.</div>
+    <canvas id="c-demod-anim" class="anim-canvas" height="360" style="background:#f0faf8"></canvas>
+  </div>
+
+  <div class="g2">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="pl" style="border-color:var(--c3);color:var(--c3);background:var(--c3l)">Homodyne — LO matches signal frequency</div>
+      <div class="card al" style="border-left-color:var(--c3)">
+        <span class="tag" style="color:var(--c3);border-color:var(--c3);background:var(--c3l)">LO</span>
+        <div class="ch">Local oscillator (matched)</div>
+        <div class="scope" style="height:110px"><div class="slbl">LO HOMO</div><canvas id="wf-loh" height="110"></canvas></div>
+      </div>
+      <div class="card al" style="border-left-color:var(--c3)">
+        <span class="tag" style="color:var(--c3);border-color:var(--c3);background:var(--c3l)">Mixer output</span>
+        <div class="ch">Signal × LO</div>
+        <div class="scope" style="height:110px"><div class="slbl">MIXED HOMO</div><canvas id="wf-mxh" height="110"></canvas></div>
+        <div class="stats">
+          <div class="stat" style="border-color:var(--c3m);background:var(--c3l)"><div class="sl">I</div><div class="sv" style="color:var(--c3);font-size:18px" id="d-Ih">—</div></div>
+          <div class="stat" style="border-color:var(--c3m);background:var(--c3l)"><div class="sl">Q</div><div class="sv" style="color:var(--c3);font-size:18px" id="d-Qh">—</div></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="pl" style="border-color:var(--c5o);color:var(--c5o);background:var(--c5ol)">Heterodyne — LO deliberately offset</div>
+      <div class="card al" style="border-left-color:var(--c5o)">
+        <span class="tag" style="color:var(--c5o);border-color:var(--c5o);background:var(--c5ol)">LO</span>
+        <div class="ch">Local oscillator (offset)</div>
+        <div class="scope" style="height:110px"><div class="slbl">LO HETERO</div><canvas id="wf-loe" height="110"></canvas></div>
+      </div>
+      <div class="card al" style="border-left-color:var(--c5o)">
+        <span class="tag" style="color:var(--c5o);border-color:var(--c5o);background:var(--c5ol)">Mixer output</span>
+        <div class="ch">Signal × LO — beat pattern</div>
+        <div class="scope" style="height:110px"><div class="slbl">MIXED HETERO</div><canvas id="wf-mxe" height="110"></canvas></div>
+        <div class="stats">
+          <div class="stat" style="border-color:var(--c5o);background:var(--c5ol)"><div class="sl">I</div><div class="sv" style="color:var(--c5o);font-size:18px" id="d-Ie">—</div></div>
+          <div class="stat" style="border-color:var(--c5o);background:var(--c5ol)"><div class="sl">Q</div><div class="sv" style="color:var(--c5o);font-size:18px" id="d-Qe">—</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card al" style="border-left-color:var(--c5t)">
+    <div class="ch">Mixer math</div>
+    <div class="expl" style="border-left-color:var(--c5t);background:var(--c5tl)"><strong>sin(A) × sin(B) = ½cos(A−B) − ½cos(A+B).</strong> Two new frequencies always appear — sum and difference.<br><br><strong style="color:var(--c5t)">Homodyne:</strong> A = B so A−B = 0 (DC). The filter next keeps only this DC — which encodes phase. Rotate the phase slider and watch I change.<br><br><strong style="color:var(--c5o)">Heterodyne:</strong> A ≠ B so A−B = IF frequency. A new wave appears at the IF carrying both amplitude and phase.</div>
+  </div>
+</div>
+</div>
+
+<!-- ══ TAB 6 — FILTERING ══ -->
+<div class="tp t6-bg" id="tp5">
+<div class="tab-hero"><h2 style="color:var(--c6)">Filtering & Output</h2><p>Filters extract the useful signal. The FFT makes filter behavior crystal clear — showing exactly what frequencies survive and what gets blocked by each filter type.</p></div>
+<div class="tab-body">
+  <div class="calc-panel" style="border-color:var(--c6m);background:var(--c6l)">
+    <div class="ci"><div class="cl">DC level</div><div class="cv" style="color:var(--c6)" id="fc-dc">—</div><div class="cu">V</div></div>
+    <div class="ci"><div class="cl">Phase (homo)</div><div class="cv" style="color:var(--c6)" id="fc-ph">—</div><div class="cu">deg</div></div>
+    <div class="ci"><div class="cl">IF frequency</div><div class="cv" style="color:var(--c6)" id="fc-if">—</div><div class="cu">Hz</div></div>
+    <div class="ci"><div class="cl">IF amplitude</div><div class="cv" style="color:var(--c6)" id="fc-ia">—</div><div class="cu">V</div></div>
+    <div class="ci"><div class="cl">SNR out</div><div class="cv" style="color:var(--c6)" id="fc-snr">—</div><div class="cu">dB</div></div>
+    <div class="ci"><div class="cl">IQ magnitude</div><div class="cv" style="color:var(--c6)" id="fc-iq">—</div><div class="cu">—</div></div>
+  </div>
+
+  <div class="g2">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="pl" style="border-color:var(--c3);color:var(--c3);background:var(--c3l)">Homodyne — Low-Pass Filter → DC</div>
+      <div class="card al" style="border-left-color:var(--c3)">
+        <span class="tag" style="color:var(--c3);border-color:var(--c3);background:var(--c3l)">LPF output</span>
+        <div class="ch">After low-pass filter</div>
+        <div class="cs">FFT: only DC spike at zero. Time: flat line. Height = phase of signal.</div>
+        <div class="sig-pair">
+          <div><div class="pair-lbl">Time domain</div><div class="scope" style="height:130px"><div class="slbl">LPF OUT</div><canvas id="wf-lpf" height="130"></canvas></div></div>
+          <div><div class="pair-lbl">Frequency (FFT)</div><div class="fft-c" style="height:130px"><div class="flbl">FFT · LPF</div><canvas id="ff-lpf" height="130"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="pl" style="border-color:var(--c5o);color:var(--c5o);background:var(--c5ol)">Heterodyne — Band-Pass Filter → IF</div>
+      <div class="card al" style="border-left-color:var(--c5o)">
+        <span class="tag" style="color:var(--c5o);border-color:var(--c5o);background:var(--c5ol)">BPF output</span>
+        <div class="ch">After band-pass filter</div>
+        <div class="cs">FFT: only IF peak. Time: IF wave. Amplitude and phase both preserved.</div>
+        <div class="sig-pair">
+          <div><div class="pair-lbl">Time domain</div><div class="scope" style="height:130px"><div class="slbl">BPF OUT</div><canvas id="wf-bpf" height="130"></canvas></div></div>
+          <div><div class="pair-lbl">Frequency (FFT)</div><div class="fft-c" style="height:130px"><div class="flbl">FFT · BPF</div><canvas id="ff-bpf" height="130"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card al" style="border-left-color:var(--c3)"><div class="ch">IQ plane — live state</div><div class="cs">Distance from center = amplitude · Angle = phase · <span style="color:var(--c3);font-weight:600">Teal = homodyne</span> · <span style="color:var(--c5o);font-weight:600">Orange = heterodyne</span></div><canvas id="c-iq" height="230" style="display:block;width:100%"></canvas></div>
+    <div class="card al" style="border-left-color:var(--c6)"><div class="ch">IQ trail — noise spread</div><div class="cs">Accumulated measurements. More noise = wider cloud = more errors.</div><canvas id="c-iqt" height="230" style="display:block;width:100%"></canvas></div>
+  </div>
+
+  <div class="card al" style="border-left-color:var(--c6)">
+    <div class="ch">Homodyne vs Heterodyne</div>
+    <table class="ctbl">
+      <thead><tr><th>Property</th><th style="color:var(--c3)">Homodyne</th><th style="color:var(--c5o)">Heterodyne</th></tr></thead>
+      <tbody>
+        <tr><td>LO frequency</td><td style="color:var(--c3)">Same as signal</td><td style="color:var(--c5o)">Offset — creates IF</td></tr>
+        <tr><td>Filter</td><td style="color:var(--c3)">Low-pass</td><td style="color:var(--c5o)">Band-pass at IF</td></tr>
+        <tr><td>Info recovered</td><td style="color:var(--c3)">Phase only</td><td style="color:var(--c5o)">Amplitude + Phase</td></tr>
+        <tr><td>Noise sensitivity</td><td style="color:var(--c3)">Lower — narrow BW</td><td style="color:var(--c5o)">Higher — wider BW</td></tr>
+        <tr><td>Quantum use</td><td style="color:var(--c3)">Phase-sensitive readout</td><td style="color:var(--c5o)">Full IQ state readout</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<!-- ══ TAB 7 — RECEIVED ══ -->
+<div class="tp t7-bg" id="tp6">
+<div class="tab-hero"><h2 style="color:var(--c7)">Message Received</h2><p>Both paths recover the message — but with a fundamental difference. Homodyne captures phase only. Heterodyne captures amplitude and phase both. Toggle to view each path individually, or see the side-by-side comparison below.</p></div>
+<div class="tab-body">
+
+  <!-- TOGGLE -->
+  <div style="display:flex;gap:10px;margin-bottom:20px;align-items:center;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:12px;color:var(--ink3);letter-spacing:.5px;text-transform:uppercase">View path:</span>
+    <button id="btn-homo" onclick="setRecMode('homo')" style="padding:9px 24px;border-radius:4px;border:2px solid var(--c3);background:var(--c3);color:#fff;font-family:var(--mono);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s">Homodyne</button>
+    <button id="btn-hetero" onclick="setRecMode('hetero')" style="padding:9px 24px;border-radius:4px;border:2px solid var(--border);background:transparent;color:var(--ink3);font-family:var(--mono);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s">Heterodyne</button>
+  </div>
+
+  <!-- SINGLE PATH VIEW — recovered message + binary -->
+  <div class="g2" style="margin-bottom:14px">
+    <div class="card al" id="rec-main-card" style="border-left-color:var(--c3)">
+      <div class="ch" id="rec-path-title">Homodyne — recovered message</div>
+      <div class="rec-msg" id="rec-msg" style="color:var(--c3);border-color:var(--c3m);background:var(--c3l)">HELLO</div>
+      <div class="stats">
+        <div class="stat" style="border-color:var(--c7m);background:var(--c7l)"><div class="sl">Original</div><div class="sv" style="color:var(--c7);font-size:16px" id="r-orig">HELLO</div></div>
+        <div class="stat" style="border-color:#f5c9a8;background:var(--c5ol)"><div class="sl">Bit errors</div><div class="sv" style="color:#b81c1c" id="r-err">0</div></div>
+        <div class="stat" style="border-color:var(--c6m);background:var(--c6l)"><div class="sl">BER</div><div class="sv" style="color:var(--c6)" id="r-ber">0%</div></div>
+      </div>
+    </div>
+    <div class="card al" id="rec-bin-card" style="border-left-color:var(--c3)">
+      <div class="ch">Binary comparison</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--c7);font-weight:600;margin-bottom:7px;letter-spacing:1px;text-transform:uppercase">Sent</div>
+      <div class="bin" id="r-sent" style="margin-bottom:14px"></div>
+      <div style="font-family:var(--mono);font-size:12px;color:#b81c1c;font-weight:600;margin-bottom:7px;letter-spacing:1px;text-transform:uppercase">Received</div>
+      <div class="bin" id="r-recv"></div>
+    </div>
+  </div>
+
+  <!-- 2-LINE EXPLANATION PANEL -->
+  <div class="card al" id="rec-explain-card" style="border-left-color:var(--c3);padding:14px 20px;margin-bottom:20px">
+    <div id="rec-explain" style="font-size:15px;color:var(--ink2);line-height:1.8"></div>
+  </div>
+
+  <!-- RECOVERED PULSE TRAIN -->
+  <div class="card al" id="rec-scope-card" style="border-left-color:var(--c3);margin-bottom:20px">
+    <div class="ch">Recovered pulse train</div>
+    <div class="scope" style="height:130px"><div class="slbl" id="rec-scope-lbl">HOMODYNE · RECOVERED BASEBAND</div><canvas id="wf-rec" height="130"></canvas></div>
+  </div>
+
+  <!-- SIDE BY SIDE COMPARISON CARD -->
+  <div class="card al" style="border-left-color:var(--c6)">
+    <div class="ch">Homodyne vs Heterodyne — side by side</div>
+    <div class="cs">Same message, same noise level, both paths simultaneously. The key difference: heterodyne recovers amplitude too — homodyne cannot.</div>
+    <canvas id="c-compare" height="240" style="display:block;width:100%;border-radius:6px;background:#fafaf6;border:1.5px solid var(--border)"></canvas>
+  </div>
+
+</div>
+</div>
+
+</div><!-- end content -->
+</div><!-- end app -->
+
+<script>
+const API='http://127.0.0.1:5000';
+let modType='AM',modData=null,demodData=null,iqTrail=[],currentTab=0;
+let animFrame=0;
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function goTab(i){
+  document.querySelectorAll('.tp').forEach((p,j)=>p.classList.toggle('on',j===i));
+  document.querySelectorAll('.tb').forEach((b,j)=>b.classList.toggle('on',j===i));
+  currentTab=i;
+  setTimeout(()=>{resizeAll();if(i===1){drawBloch();drawQSC();drawQuantumIQ(null,null);}if(i===5){drawIQPlane();drawIQTrail();}if(i===6){updateRecovered();}},80);
+}
+document.querySelector('.tb').classList.add('on');
+document.getElementById('tp0').classList.add('on');
+
+// ── FFT ───────────────────────────────────────────────────────────────────────
+function fft(data){
+  let N=1;while(N<data.length&&N<512)N<<=1;
+  const re=[...data.slice(0,N)],im=new Array(N).fill(0);
+  for(let len=2;len<=N;len<<=1){
+    const a=-2*Math.PI/len,wr=Math.cos(a),wi=Math.sin(a);
+    for(let i=0;i<N;i+=len){let cr=1,ci=0;
+      for(let j=0;j<len/2;j++){
+        const ur=re[i+j],ui=im[i+j],vr=re[i+j+len/2]*cr-im[i+j+len/2]*ci,vi=re[i+j+len/2]*ci+im[i+j+len/2]*cr;
+        re[i+j]=ur+vr;im[i+j]=ui+vi;re[i+j+len/2]=ur-vr;im[i+j+len/2]=ui-vi;
+        const nr=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=nr;
+      }
+    }
+  }
+  const mag=[];for(let i=0;i<N/2;i++)mag.push(Math.sqrt(re[i]*re[i]+im[i]*im[i])/N);
+  return mag;
+}
+
+// ── SCOPES ────────────────────────────────────────────────────────────────────
+const SC={};
+const SC_CFG={
+  'c-pulse':{c:'#00c8a0',mn:-0.2,mx:1.4},'wf-base':{c:'#00c8a0',mn:-2.5,mx:2.5},
+  'wf-car':{c:'#3a9fd4',mn:-1.5,mx:1.5},'wf-mod':{c:'#1ab8a0',mn:-2.5,mx:2.5},
+  'wf-clean':{c:'#00c8a0',mn:-2.5,mx:2.5},'wf-noisy':{c:'#d46a00',mn:-2.5,mx:2.5},
+  'wf-loh':{c:'#00c8a0',mn:-1.5,mx:1.5},'wf-loe':{c:'#d46a00',mn:-1.5,mx:1.5},
+  'wf-mxh':{c:'#7060d0',mn:-2.5,mx:2.5},'wf-mxe':{c:'#7060d0',mn:-2.5,mx:2.5},
+  'wf-lpf':{c:'#00c8a0',mn:-1.5,mx:1.5},'wf-bpf':{c:'#d46a00',mn:-1.5,mx:1.5},
+  'wf-rec':{c:'#1e8a4a',mn:-0.2,mx:1.4},
+};
+const FFT_PAIRS={'ff-base':'wf-base','ff-car':'wf-car','ff-mod':'wf-mod','ff-lpf':'wf-lpf','ff-bpf':'wf-bpf'};
+Object.entries(SC_CFG).forEach(([id,cfg])=>SC[id]={data:[],ph:0,...cfg});
+function setD(id,arr){if(SC[id])SC[id].data=arr;}
+
+function drawScope(id){
+  const s=SC[id],c=document.getElementById(id);
+  if(!c||!s||!s.data.length)return;
+  const W=c.offsetWidth||c.parentElement?.offsetWidth||260;c.width=W;
+  const H=c.height||120,ctx=c.getContext('2d'),N=s.data.length,rng=s.mx-s.mn,off=Math.floor(s.ph)%N;
+  ctx.fillStyle='#0c180c';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#182818';ctx.lineWidth=.5;
+  for(let i=1;i<10;i++){ctx.beginPath();ctx.moveTo(W*i/10,0);ctx.lineTo(W*i/10,H);ctx.stroke();}
+  for(let i=1;i<6;i++){ctx.beginPath();ctx.moveTo(0,H*i/6);ctx.lineTo(W,H*i/6);ctx.stroke();}
+  const zy=H-((0-s.mn)/rng)*H;
+  ctx.strokeStyle='#283828';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,zy);ctx.lineTo(W,zy);ctx.stroke();
+  ctx.strokeStyle=s.c;ctx.lineWidth=2;ctx.shadowColor=s.c;ctx.shadowBlur=5;
+  ctx.beginPath();
+  for(let x=0;x<W;x++){const v=s.data[(Math.floor(x*N/W)+off)%N];const y=H-((v-s.mn)/rng)*H;x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+  ctx.stroke();ctx.shadowBlur=0;
+}
+
+function drawFFT(fid,sid){
+  const s=SC[sid],c=document.getElementById(fid);
+  if(!c||!s||!s.data.length)return;
+  const W=c.offsetWidth||c.parentElement?.offsetWidth||260;c.width=W;
+  const H=c.height||120,ctx=c.getContext('2d');
+  ctx.fillStyle='#080814';ctx.fillRect(0,0,W,H);
+  // Grid lines
+  ctx.strokeStyle='#1a1a30';ctx.lineWidth=.5;
+  for(let i=1;i<8;i++){ctx.beginPath();ctx.moveTo(W*i/8,0);ctx.lineTo(W*i/8,H);ctx.stroke();}
+  for(let i=1;i<5;i++){ctx.beginPath();ctx.moveTo(0,H*i/5);ctx.lineTo(W,H*i/5);ctx.stroke();}
+  const mag=fft(s.data),half=mag.length,mx=Math.max(...mag,.001);
+  // Axis labels
+  ctx.fillStyle='#5050a0';ctx.font='9px IBM Plex Mono';
+  ctx.fillText('0 Hz',4,H-4);ctx.fillText('Fs/2',W-30,H-4);
+  const bw=Math.max(1.5,W/half-.5);
+  for(let i=0;i<half;i++){
+    const norm=mag[i]/mx;
+    const h=norm*(H-18);
+    if(h<0.5)continue;
+    // Bright cyan/teal bars with glow
+    const r=Math.floor(0+norm*40),g=Math.floor(180+norm*75),b=Math.floor(200+norm*55);
+    ctx.fillStyle=`rgba(${r},${g},${b},${0.55+norm*.45})`;
+    ctx.shadowColor=`rgba(0,220,200,${norm*.6})`;
+    ctx.shadowBlur=norm>0.4?6:0;
+    ctx.fillRect(i*(W/half),H-h-2,bw,h);
+    ctx.shadowBlur=0;
+    // Bright cap on strong peaks
+    if(norm>0.25){
+      ctx.fillStyle=`rgba(255,255,255,${norm*.8})`;
+      ctx.fillRect(i*(W/half),H-h-2,bw,2);
+    }
+  }
+}
+
+// ── MESSAGE → BITS ANIMATION ──────────────────────────────────────────────────
+function drawMsgAnim(t){
+  const c=document.getElementById('c-msg-anim');if(!c||c.offsetParent===null)return;
+  const W=c.offsetWidth||600;c.width=W;const H=120;
+  const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+
+  const msg=document.getElementById('msg').value||'A';
+  const bits=[];for(const ch of msg)for(const b of format(ch))bits.push(+b);
+  function format(ch){return (('00000000'+ch.charCodeAt(0).toString(2)).slice(-8)).split('');}
+
+  // Three zones
+  const z1=W*.22,z2=W*.52,z3=W;
+  // Zone labels
+  ctx.font='bold 11px IBM Plex Mono';ctx.fillStyle='#1a5f8a';
+  ctx.fillText('MESSAGE',10,18);
+  ctx.fillStyle='#0a7a6e';ctx.fillText('BINARY BITS',z1+10,18);
+  ctx.fillStyle='#5b3fa6';ctx.fillText('WAVEFORM',z2+10,18);
+
+  // Message characters
+  for(let i=0;i<msg.length;i++){
+    const x=18+i*32,y=65;
+    const glow=Math.sin(t*.04+i)*0.5+0.5;
+    ctx.fillStyle=`rgba(26,95,138,${0.6+glow*.4})`;
+    ctx.font=`bold 18px IBM Plex Mono`;
+    ctx.fillText(msg[i],x,y);
+    // Arrow flowing right
+    const arrowAlpha=(Math.sin(t*.06+i*0.8)*.5+.5);
+    ctx.fillStyle=`rgba(26,95,138,${arrowAlpha*.6})`;
+    ctx.font='14px sans-serif';ctx.fillText('→',x+14,y+1);
+  }
+
+  // Flowing bits
+  const numBits=Math.min(bits.length,24);
+  for(let i=0;i<numBits;i++){
+    const progress=((t*.018+i/numBits)%1);
+    const x=z1+16+(progress*(z2-z1-32));
+    const y=50+Math.sin(t*.02+i)*14;
+    const alpha=progress<0.1?progress*10:progress>0.9?(1-progress)*10:1;
+    ctx.fillStyle=bits[i]?`rgba(0,180,140,${alpha})`:`rgba(136,136,136,${alpha*0.6})`;
+    ctx.font=`bold 14px IBM Plex Mono`;
+    ctx.fillText(bits[i],x,y);
+  }
+
+  // Waveform preview
+  const waveX=z2+16,waveW=W-z2-24;
+  if(SC['c-pulse'].data.length){
+    const data=SC['c-pulse'].data,N=data.length;
+    const off=Math.floor(t*1.2)%N;
+    ctx.strokeStyle='#5b3fa6';ctx.lineWidth=2;ctx.shadowColor='#5b3fa6';ctx.shadowBlur=6;
+    ctx.beginPath();
+    for(let x=0;x<waveW;x++){
+      const v=data[(Math.floor(x*N/waveW)+off)%N];
+      const y=H/2-v*30;
+      x===0?ctx.moveTo(waveX+x,y):ctx.lineTo(waveX+x,y);
+    }
+    ctx.stroke();ctx.shadowBlur=0;
+  }
+  // Zone dividers
+  ctx.strokeStyle='rgba(0,0,0,.1)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(z1,25);ctx.lineTo(z1,H-10);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(z2,25);ctx.lineTo(z2,H-10);ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// ── MODULATION ANIMATION ──────────────────────────────────────────────────────
+function drawModAnim(t){
+  const c=document.getElementById('c-mod-anim');if(!c||c.offsetParent===null)return;
+  const W=c.offsetWidth||600;c.width=W;const H=160;
+  const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+
+  const fC=+document.getElementById('f-car').value||10;
+  const amp=+document.getElementById('f-amp').value||1;
+
+  // Three columns: baseband | carrier | modulated
+  const cw=W/3;
+
+  // Labels
+  const labels=['BASEBAND','CARRIER','MODULATED OUTPUT'];
+  const colors=['#0a7a6e','#3a9fd4','#c94a00'];
+  labels.forEach((l,i)=>{
+    ctx.font='bold 10px IBM Plex Mono';ctx.fillStyle=colors[i];
+    ctx.textAlign='center';ctx.fillText(l,cw*i+cw/2,16);ctx.textAlign='left';
+  });
+
+  // Draw each wave
+  function drawWave(xOff,yOff,ww,fn,color,lw){
+    ctx.strokeStyle=color;ctx.lineWidth=lw||2;
+    ctx.shadowColor=color;ctx.shadowBlur=4;
+    ctx.beginPath();
+    for(let x=0;x<ww;x++){
+      const tx=(x/ww+t*.015);
+      const y=yOff-fn(tx)*40;
+      x===0?ctx.moveTo(xOff+x,y):ctx.lineTo(xOff+x,y);
+    }
+    ctx.stroke();ctx.shadowBlur=0;
+  }
+
+  // Center y for each column
+  const cy=H/2+16;
+
+  // Baseband — step function
+  const baseFn=tx=>{const bits=[1,1,0,0,1,0,1,1];return bits[Math.floor(tx*8)%8]?.5:-.5;};
+  drawWave(cw*.05,cy,cw*.9,baseFn,'#00c8a0',2.5);
+
+  // Plus sign
+  ctx.fillStyle='#888';ctx.font='bold 24px sans-serif';ctx.textAlign='center';
+  ctx.fillText('×',cw+cw/2,cy+8);ctx.textAlign='left';
+
+  // Carrier
+  const carFn=tx=>Math.sin(2*Math.PI*fC*tx)*amp;
+  drawWave(cw*1.05,cy,cw*.9,carFn,'#3a9fd4',2);
+
+  // Equals sign
+  ctx.fillStyle='#888';ctx.font='bold 24px sans-serif';ctx.textAlign='center';
+  ctx.fillText('=',cw*2+cw/2,cy+8);ctx.textAlign='left';
+
+  // Modulated
+  let modFn;
+  if(modType==='AM') modFn=tx=>(1+baseFn(tx))*Math.sin(2*Math.PI*fC*tx)*amp*.5;
+  else if(modType==='FM'){let ph=0;modFn=tx=>{ph+=0.05*(1+baseFn(tx));return Math.sin(ph)*amp;};}
+  else modFn=tx=>Math.sin(2*Math.PI*fC*tx+Math.PI*(.5+baseFn(tx)*.5))*amp;
+  drawWave(cw*2.05,cy,cw*.9,modFn,'#c94a00',2.5);
+
+  // Animated arrows between zones
+  [1,2].forEach(z=>{
+    const ax=cw*z-18,prog=(Math.sin(t*.05+z)*.5+.5);
+    ctx.fillStyle=`rgba(180,180,180,${.3+prog*.5})`;
+    ctx.font='20px sans-serif';ctx.textAlign='center';
+    ctx.fillText(['×','='][z-1],ax+18,cy+8);ctx.textAlign='left';
+  });
+
+  // Border lines
+  ctx.strokeStyle='rgba(0,0,0,.08)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(cw,24);ctx.lineTo(cw,H-8);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cw*2,24);ctx.lineTo(cw*2,H-8);ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// ── DEMODULATION ANIMATION ────────────────────────────────────────────────────
+function drawDemodAnim(t){
+  const c=document.getElementById('c-demod-anim');if(!c||c.offsetParent===null)return;
+  const W=c.offsetWidth||600;c.width=W;const H=360;c.height=H;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#f8fdf8';ctx.fillRect(0,0,W,H);
+
+  const fC=+document.getElementById('f-car').value||10;
+  const fOff=+document.getElementById('lo-off').value||1;
+  const phase=+document.getElementById('phase').value*Math.PI/180;
+
+  const cols=5,cw=W/cols,rowH=H/2,pad=8;
+
+  const inFn =tx=>Math.sin(2*Math.PI*fC*tx);
+  const loHFn=tx=>Math.sin(2*Math.PI*fC*tx+phase);
+  const loEFn=tx=>Math.sin(2*Math.PI*(fC+fOff)*tx);
+  const mixH =tx=>inFn(tx)*loHFn(tx);
+  const mixE =tx=>inFn(tx)*loEFn(tx);
+  // LPF approximation: smooth the mixed signal
+  const lpfH =tx=>{let s=0;for(let i=0;i<8;i++)s+=mixH(tx-i*.005);return s/8*.6;};
+  // BPF approximation: IF wave
+  const bpfE =tx=>Math.sin(2*Math.PI*fOff*tx)*.7;
+
+  function drawRow(rowY,fns,colors,labels,rowColor,rowLabel){
+    // Row background tint
+    ctx.fillStyle=rowColor;ctx.beginPath();ctx.roundRect(0,rowY+2,W,rowH-4,6);ctx.fill();
+
+    // Row label on left edge
+    ctx.save();ctx.translate(6,rowY+rowH/2);ctx.rotate(-Math.PI/2);
+    ctx.font='bold 9px IBM Plex Mono';ctx.fillStyle=colors[0];ctx.textAlign='center';
+    ctx.fillText(rowLabel,0,0);ctx.restore();
+
+    // Draw each stage
+    fns.forEach((fn,i)=>{
+      const x0=cw*i+pad+10,ww=cw-pad*2-10,cy=rowY+rowH/2;
+
+      // Stage background box
+      ctx.fillStyle='rgba(0,0,0,0.06)';ctx.beginPath();ctx.roundRect(x0-2,rowY+6,ww+4,rowH-12,4);ctx.fill();
+      ctx.strokeStyle=`${colors[i]}44`;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(x0-2,rowY+6,ww+4,rowH-12,4);ctx.stroke();
+
+      // Stage label
+      ctx.font='bold 8px IBM Plex Mono';ctx.fillStyle=colors[i];ctx.textAlign='center';
+      ctx.fillText(labels[i],x0+ww/2,rowY+16);
+
+      // Waveform
+      ctx.strokeStyle=colors[i];ctx.lineWidth=2;ctx.shadowColor=colors[i];ctx.shadowBlur=6;
+      ctx.beginPath();
+      for(let x=0;x<ww;x++){
+        const tx=x/ww+t*.012;
+        const v=fn(tx);
+        const y=cy-v*28;
+        x===0?ctx.moveTo(x0+x,y):ctx.lineTo(x0+x,y);
+      }
+      ctx.stroke();ctx.shadowBlur=0;
+
+      // Animated arrow between stages
+      if(i<fns.length-1){
+        const ax=x0+ww+2,ay=rowY+rowH/2;
+        const prog=((t*.015+i*.3)%1);
+        ctx.fillStyle=`rgba(180,180,180,${0.4+prog*.5})`;
+        ctx.font='14px sans-serif';ctx.textAlign='center';
+        ctx.fillText('→',ax+4,ay+5);
+      }
+    });
+  }
+
+  // HOMODYNE ROW (top)
+  drawRow(2,
+    [inFn, loHFn, mixH, lpfH],
+    ['#3a9fd4','#00c8a0','#7060d0','#00e8a8'],
+    ['SIGNAL IN','LO (matched)','MIXER ×','LPF → DC'],
+    'rgba(0,200,160,0.04)','HOMO'
+  );
+
+  // Output box homodyne
+  const hOutX=cw*4+pad+10,hOutY=2+rowH/2;
+  ctx.fillStyle='rgba(0,200,160,0.15)';ctx.beginPath();ctx.roundRect(hOutX-2,6,cw-pad*2-8,rowH-10,4);ctx.fill();
+  ctx.strokeStyle='#00c8a044';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(hOutX-2,6,cw-pad*2-8,rowH-10,4);ctx.stroke();
+  ctx.font='bold 8px IBM Plex Mono';ctx.fillStyle='#00c8a0';ctx.textAlign='center';
+  ctx.fillText('DC OUTPUT',hOutX+(cw-pad*2-8)/2-2,18);
+  // DC flat line with glow
+  const dcVal=Math.cos(phase)*0.5;
+  ctx.strokeStyle='#00e8a8';ctx.lineWidth=3;ctx.shadowColor='#00e8a8';ctx.shadowBlur=10;
+  ctx.beginPath();ctx.moveTo(hOutX,hOutY-dcVal*28);ctx.lineTo(hOutX+cw-pad*2-14,hOutY-dcVal*28);ctx.stroke();
+  ctx.shadowBlur=0;
+  ctx.font='10px IBM Plex Mono';ctx.fillStyle='#00c8a0';ctx.textAlign='center';
+  ctx.fillText(`DC = ${dcVal.toFixed(2)}`,hOutX+(cw-pad*2-8)/2-2,rowH-8);
+
+  // Divider line between rows
+  ctx.strokeStyle='rgba(0,0,0,0.1)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(0,rowH);ctx.lineTo(W,rowH);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // HETERODYNE ROW (bottom)
+  drawRow(rowH+2,
+    [inFn, loEFn, mixE, bpfE],
+    ['#3a9fd4','#ff8040','#9060c0','#ff6020'],
+    ['SIGNAL IN','LO (offset)','MIXER ×','BPF → IF'],
+    'rgba(201,74,0,0.04)','HETERO'
+  );
+
+  // Output box heterodyne
+  const eOutX=cw*4+pad+10,eOutY=rowH+rowH/2;
+  ctx.fillStyle='rgba(201,74,0,0.15)';ctx.beginPath();ctx.roundRect(eOutX-2,rowH+6,cw-pad*2-8,rowH-10,4);ctx.fill();
+  ctx.strokeStyle='#d4600044';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(eOutX-2,rowH+6,cw-pad*2-8,rowH-10,4);ctx.stroke();
+  ctx.font='bold 8px IBM Plex Mono';ctx.fillStyle='#d46a00';ctx.textAlign='center';
+  ctx.fillText('IF OUTPUT',eOutX+(cw-pad*2-8)/2-2,rowH+18);
+  // IF wave
+  ctx.strokeStyle='#ff6020';ctx.lineWidth=2;ctx.shadowColor='#ff6020';ctx.shadowBlur=8;
+  ctx.beginPath();
+  const ifW=cw-pad*2-14;
+  for(let x=0;x<ifW;x++){
+    const tx=x/ifW+t*.012;
+    const y=eOutY-bpfE(tx)*28;
+    x===0?ctx.moveTo(eOutX+x,y):ctx.lineTo(eOutX+x,y);
+  }
+  ctx.stroke();ctx.shadowBlur=0;
+  ctx.font='10px IBM Plex Mono';ctx.fillStyle='#d46a00';ctx.textAlign='center';
+  ctx.fillText(`IF = ${fOff} Hz`,eOutX+(cw-pad*2-8)/2-2,H-8);
+
+  ctx.textAlign='left';
+}
+
+// ── QUANTUM STATE CHANGE VISUAL ───────────────────────────────────────────────
+function drawQSC(){
+  const c=document.getElementById('c-qsc');if(!c)return;
+  const W=c.offsetWidth||600;c.width=W;const H=240;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#0a0a14';ctx.fillRect(0,0,W,H);
+
+  const theta=+document.getElementById('q-th').value;
+  const phi=+document.getElementById('q-ph').value;
+  const noiseLevel=+document.getElementById('q-noise').value;
+  const t=animFrame;
+
+  // Noise perturbs the output state
+  const noiseTheta=theta+noiseLevel*60*(Math.sin(t*.03)*0.5+Math.random()*.5-0.25);
+  const noisePhi=phi+noiseLevel*90*(Math.cos(t*.025)*0.5+Math.random()*.5-0.25);
+  const nTh=Math.max(0,Math.min(180,noiseTheta));
+  const nPh=((noisePhi%360)+360)%360;
+
+  // Update labels
+  const p0in=(Math.cos(theta*Math.PI/360)**2*100).toFixed(0);
+  const p1in=(Math.sin(theta*Math.PI/360)**2*100).toFixed(0);
+  document.getElementById('qsc-in').textContent=theta<30?'near |0⟩':theta>150?'near |1⟩':'superposition';
+  document.getElementById('qsc-noise').textContent=noiseLevel.toFixed(2);
+  document.getElementById('qsc-out').textContent=noiseLevel<0.1?'unchanged':noiseLevel<0.4?'slightly shifted':'heavily shifted';
+
+  const sphereR=70;
+  const leftCx=W*0.18,rightCx=W*0.82,midCx=W*0.5,cy=H/2;
+
+  // Draw a mini bloch sphere
+  function drawMiniBloch(cx,tr,pr,color,label,sublabel){
+    ctx.beginPath();ctx.arc(cx,cy,sphereR,0,Math.PI*2);
+    ctx.fillStyle='rgba(20,20,40,0.9)';ctx.fill();
+    ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.globalAlpha=0.6;ctx.stroke();ctx.globalAlpha=1;
+
+    // Equator
+    ctx.beginPath();ctx.ellipse(cx,cy,sphereR,sphereR*0.28,0,0,Math.PI*2);
+    ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=0.5;ctx.stroke();
+    // Axis
+    ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(cx,cy-sphereR-8);ctx.lineTo(cx,cy+sphereR+8);ctx.stroke();
+
+    // Pole labels
+    ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='10px IBM Plex Mono';ctx.textAlign='center';
+    ctx.fillText('|0⟩',cx,cy-sphereR-2);ctx.fillText('|1⟩',cx,cy+sphereR+14);ctx.textAlign='left';
+
+    // State vector
+    const vx=sphereR*Math.sin(tr)*Math.cos(pr);
+    const vy=sphereR*Math.cos(tr);
+    const ex=cx+vx,ey=cy-vy;
+    ctx.strokeStyle=color;ctx.lineWidth=2.5;
+    ctx.shadowColor=color;ctx.shadowBlur=8;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(ex,ey);ctx.stroke();
+    ctx.beginPath();ctx.arc(ex,ey,5,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+    ctx.shadowBlur=0;
+
+    // Label
+    ctx.fillStyle=color;ctx.font='bold 12px IBM Plex Mono';ctx.textAlign='center';
+    ctx.fillText(label,cx,cy+sphereR+30);
+    ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='10px IBM Plex Mono';
+    ctx.fillText(sublabel,cx,cy+sphereR+44);ctx.textAlign='left';
+  }
+
+  // Input sphere (clean)
+  drawMiniBloch(leftCx,theta*Math.PI/180,phi*Math.PI/180,'#00d4be','INPUT STATE','at modulation');
+
+  // Output sphere (noise-shifted)
+  drawMiniBloch(rightCx,nTh*Math.PI/180,nPh*Math.PI/180,'#ff6b6b','OUTPUT STATE','at demodulation');
+
+  // Noise channel in the middle
+  const chW=W*0.28,chX=midCx-chW/2,chY=cy-50;
+  ctx.fillStyle='rgba(30,15,40,0.8)';ctx.beginPath();ctx.roundRect(chX,chY,chW,100,8);ctx.fill();
+  ctx.strokeStyle='rgba(181,123,255,0.4)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(chX,chY,chW,100,8);ctx.stroke();
+
+  ctx.fillStyle='#b57bff';ctx.font='bold 10px IBM Plex Mono';ctx.textAlign='center';
+  ctx.fillText('NOISE CHANNEL',midCx,chY+18);
+
+  // Animated noise particles
+  const numP=Math.floor(noiseLevel*20)+3;
+  for(let i=0;i<numP;i++){
+    const px=chX+12+((t*.8+i*17)%1)*(chW-24);
+    const py=chY+25+Math.sin(t*.1+i*2.1)*30;
+    const brightness=Math.sin(t*.15+i)*.5+.5;
+    ctx.beginPath();ctx.arc(px,py,2+noiseLevel*2,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,${100+Math.floor(brightness*80)},${50+Math.floor(brightness*50)},${0.4+noiseLevel*.5})`;
+    ctx.fill();
+  }
+
+  // Noise level bar
+  const barY=chY+62,barX=chX+12,barW=chW-24;
+  ctx.fillStyle='rgba(255,255,255,0.1)';ctx.beginPath();ctx.roundRect(barX,barY,barW,8,4);ctx.fill();
+  ctx.fillStyle=noiseLevel<0.3?'#00d4be':noiseLevel<0.6?'#ffcc00':'#ff4e6a';
+  ctx.beginPath();ctx.roundRect(barX,barY,barW*noiseLevel,8,4);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='9px IBM Plex Mono';
+  ctx.fillText(`noise: ${noiseLevel.toFixed(2)}`,barX,chY+88);ctx.textAlign='left';
+
+  // Flow arrows from input → channel → output
+  const arrowAlpha=0.5+Math.sin(t*.05)*.3;
+  ctx.strokeStyle=`rgba(100,200,180,${arrowAlpha})`;ctx.lineWidth=2;ctx.setLineDash([6,5]);ctx.lineDashOffset=-t*1.2;
+  ctx.beginPath();ctx.moveTo(leftCx+sphereR+4,cy);ctx.lineTo(chX-4,cy);ctx.stroke();
+  ctx.strokeStyle=`rgba(255,100,100,${arrowAlpha})`;
+  ctx.beginPath();ctx.moveTo(chX+chW+4,cy);ctx.lineTo(rightCx-sphereR-4,cy);ctx.stroke();
+  ctx.setLineDash([]);ctx.lineDashOffset=0;
+
+  // Arrowheads
+  [[chX-4,cy,'#64c8b4'],[rightCx-sphereR-4,cy,'#ff6464']].forEach(([ax,ay,col])=>{
+    ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(ax-10,ay-5);ctx.lineTo(ax-10,ay+5);ctx.closePath();ctx.fill();
+  });
+
+  ctx.textAlign='left';
+}
+
+// ── MASTER LOOP ───────────────────────────────────────────────────────────────
+(function loop(){
+  animFrame++;
+  // Scopes
+  for(const id in SC){
+    const s=SC[id];
+    if(s.data.length){s.ph=(s.ph+1.8)%s.data.length;
+      const el=document.getElementById(id);
+      if(el&&el.offsetParent!==null){drawScope(id);for(const fid in FFT_PAIRS)if(FFT_PAIRS[fid]===id){const fc=document.getElementById(fid);if(fc&&fc.offsetParent!==null)drawFFT(fid,id);}}
+    }
+  }
+  // Animations (per-tab)
+  if(currentTab===0) drawMsgAnim(animFrame);
+  if(currentTab===2) drawModAnim(animFrame);
+  if(currentTab===4) drawDemodAnim(animFrame);
+  if(currentTab===1) drawQSC();
+  requestAnimationFrame(loop);
+})();
+
+// ── SERVER ────────────────────────────────────────────────────────────────────
+function setSrv(ok){const e=document.getElementById('srv');e.textContent=ok?'● BACKEND LIVE':'● BACKEND OFFLINE';e.className='srv '+(ok?'ok':'err');}
+
+// ── LIVE CALC ─────────────────────────────────────────────────────────────────
+function updateModCalc(){
+  const fC=+document.getElementById('f-car').value;
+  const amp=+document.getElementById('f-amp').value;
+  const bw=modType==='AM'?2*fC:modType==='FM'?2*(fC+1):2*fC;
+  document.getElementById('lc-fc').textContent=fC;
+  document.getElementById('lc-bw').textContent=bw;
+  document.getElementById('lc-mi').textContent=modType==='AM'?amp.toFixed(2):modType==='FM'?(fC/1).toFixed(1):'π/2';
+  document.getElementById('lc-sp').textContent=(amp*amp/2).toFixed(3);
+  document.getElementById('lc-br').textContent=fC.toFixed(0);
+  document.getElementById('lc-se').textContent=(fC/bw).toFixed(2);
+}
+function updateFilterCalc(){
+  if(!demodData)return;
+  const dc=demodData.I_homo,ph=(Math.atan2(demodData.Q_homo,demodData.I_homo)*180/Math.PI).toFixed(1);
+  const off=+document.getElementById('lo-off').value;
+  const ia=Math.sqrt(demodData.I_hetero**2+demodData.Q_hetero**2).toFixed(3);
+  const snr=parseFloat(document.getElementById('snr-v').textContent)||99;
+  const iqm=Math.sqrt(demodData.I_homo**2+demodData.Q_homo**2).toFixed(3);
+  document.getElementById('fc-dc').textContent=dc.toFixed(3);
+  document.getElementById('fc-ph').textContent=ph;
+  document.getElementById('fc-if').textContent=off;
+  document.getElementById('fc-ia').textContent=ia;
+  document.getElementById('fc-snr').textContent=snr;
+  document.getElementById('fc-iq').textContent=iqm;
+}
+
+// ── API ───────────────────────────────────────────────────────────────────────
+async function onMsg(){
+  const msg=document.getElementById('msg').value||'A';
+  try{
+    const r=await fetch(API+'/message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
+    const d=await r.json();
+    let h='';
+    for(let i=0;i<d.bits.length;i++){if(i>0&&i%8===0)h+=' ';h+=d.bits[i]===1?`<span style="color:#0a7a6e;font-weight:600">1</span>`:`<span style="color:#888">0</span>`;}
+    document.getElementById('bin-out').innerHTML=h;
+    document.getElementById('s-ch').textContent=msg.length;
+    document.getElementById('s-tb').textContent=d.total;
+    document.getElementById('s-1').textContent=d.ones;
+    document.getElementById('s-0').textContent=d.zeros;
+    setD('c-pulse',d.baseband);setSrv(true);await onMod();
+  }catch(e){setSrv(false);}
+}
+
+async function onMod(){
+  const msg=document.getElementById('msg').value||'A';
+  const fC=+document.getElementById('f-car').value;
+  const amp=+document.getElementById('f-amp').value;
+  const noise=+document.getElementById('noise').value;
+  document.getElementById('f-car-v').textContent=fC+' Hz';
+  document.getElementById('f-amp-v').textContent=amp.toFixed(1);
+  try{
+    const r=await fetch(API+'/modulate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,mod_type:modType,f_carrier:fC,amplitude:amp,noise})});
+    modData=await r.json();
+    setD('wf-base',modData.baseband);setD('wf-car',modData.carrier);setD('wf-mod',modData.modulated);
+    setD('wf-clean',modData.modulated_clean);setD('wf-noisy',modData.modulated);
+    const snr=modData.snr,el=document.getElementById('snr-v');
+    el.textContent=snr+' dB';el.style.color=snr>40?'var(--c7)':snr>15?'var(--c6)':'#b81c1c';
+    document.getElementById('noise-v').textContent=noise.toFixed(2);
+    updateModCalc();await onDemod();
+  }catch(e){}
+}
+
+async function onDemod(){
+  if(!modData)return;
+  const phase=+document.getElementById('phase').value*Math.PI/180;
+  const off=+document.getElementById('lo-off').value;
+  const fC=+document.getElementById('f-car').value;
+  document.getElementById('phase-v').textContent=document.getElementById('phase').value+'°';
+  document.getElementById('lo-off-v').textContent=off+' Hz';
+  try{
+    const r=await fetch(API+'/demodulate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modulated:modData.modulated,f_signal:fC,f_offset:off,phase_diff:phase})});
+    demodData=await r.json();
+    setD('wf-loh',demodData.lo_homo);setD('wf-loe',demodData.lo_hetero);
+    setD('wf-mxh',demodData.mixed_homo);setD('wf-mxe',demodData.mixed_hetero);
+    setD('wf-lpf',demodData.lpf);setD('wf-bpf',demodData.bpf);
+    document.getElementById('d-Ih').textContent=demodData.I_homo.toFixed(3);
+    document.getElementById('d-Qh').textContent=demodData.Q_homo.toFixed(3);
+    document.getElementById('d-Ie').textContent=demodData.I_hetero.toFixed(3);
+    document.getElementById('d-Qe').textContent=demodData.Q_hetero.toFixed(3);
+    iqTrail.push({I:demodData.I_homo,Q:demodData.Q_homo});
+    if(iqTrail.length>80)iqTrail.shift();
+    if(currentTab===5){drawIQPlane();drawIQTrail();}
+    updateFilterCalc();updateRecovered();
+  }catch(e){}
+}
+
+function onNoise(){onMod();}
+function setMT(t,btn){
+  modType=t;
+  ['AM','FM','PM'].forEach(x=>{const b=document.getElementById('mb-'+x);if(b){const on=x===t;b.style.borderColor=on?'var(--c3)':'';b.style.color=on?'var(--c3)':'';b.style.background=on?'var(--c3l)':'';b.classList.toggle('on',on);}});
+  const subs={AM:'AM: carrier height varies with message bits. FFT shows sidebands around carrier.',FM:'FM: carrier frequency varies. FFT shows wider sideband spread.',PM:'PM: carrier phase shifts at each bit transition. Used in quantum readout systems.'};
+  document.getElementById('mod-sub').textContent=subs[t];onMod();
+}
+
+// ── BLOCH SPHERE ──────────────────────────────────────────────────────────────
+function drawBloch(){
+  const cv=document.getElementById('bloch');if(!cv)return;
+  const W=cv.offsetWidth||280;cv.width=W;cv.height=250;
+  const ctx=cv.getContext('2d'),cx=W/2,cy=125,r=Math.min(cx,cy)-22;
+  ctx.clearRect(0,0,W,250);
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#f8f6f2';ctx.fill();ctx.strokeStyle='#bbb';ctx.lineWidth=1.5;ctx.stroke();
+  [-0.5,0,0.5].forEach(z=>{const ry=Math.sqrt(Math.max(0,1-z*z))*r,ey=cy-z*r;ctx.beginPath();ctx.ellipse(cx,ey,ry,ry*0.28,0,0,Math.PI*2);ctx.strokeStyle='#ddd';ctx.lineWidth=0.5;ctx.stroke();});
+  ctx.strokeStyle='#ccc';ctx.lineWidth=.8;
+  ctx.beginPath();ctx.moveTo(cx,cy-r-14);ctx.lineTo(cx,cy+r+14);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-r-14,cy);ctx.lineTo(cx+r+14,cy);ctx.stroke();
+  ctx.fillStyle='#888';ctx.font='bold 13px IBM Plex Mono';
+  ctx.fillText('|0⟩',cx+6,cy-r-4);ctx.fillText('|1⟩',cx+6,cy+r+18);ctx.fillText('+X',cx+r+4,cy+4);ctx.fillText('−X',cx-r-32,cy+4);
+  const th=+document.getElementById('q-th').value,ph=+document.getElementById('q-ph').value;
+  const tr=th*Math.PI/180,pr=ph*Math.PI/180;
+  const vx=r*Math.sin(tr)*Math.cos(pr),vy=r*Math.cos(tr),ex=cx+vx,ey=cy-vy;
+  ctx.strokeStyle='rgba(91,63,166,.25)';ctx.lineWidth=1;ctx.setLineDash([3,4]);
+  ctx.beginPath();ctx.moveTo(ex,ey);ctx.lineTo(cx,ey);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(ex,ey);ctx.lineTo(ex,cy);ctx.stroke();ctx.setLineDash([]);
+  ctx.strokeStyle='#5b3fa6';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(ex,ey);ctx.stroke();
+  const ang=Math.atan2(ey-cy,ex-cx);
+  ctx.fillStyle='#5b3fa6';ctx.beginPath();ctx.moveTo(ex,ey);ctx.lineTo(ex-11*Math.cos(ang-.4),ey-11*Math.sin(ang-.4));ctx.lineTo(ex-11*Math.cos(ang+.4),ey-11*Math.sin(ang+.4));ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.arc(ex,ey,5,0,Math.PI*2);ctx.fillStyle='#5b3fa6';ctx.fill();
+  const p0=(Math.cos(tr/2)**2*100).toFixed(1),p1=(Math.sin(tr/2)**2*100).toFixed(1);
+  ctx.fillStyle='#0a7a6e';ctx.font='bold 13px IBM Plex Mono';ctx.fillText('|0⟩: '+p0+'%',10,22);
+  ctx.fillStyle='#c94a00';ctx.fillText('|1⟩: '+p1+'%',10,40);
+  ctx.fillStyle='#aaa';ctx.font='11px IBM Plex Mono';ctx.fillText('θ='+th+'°  φ='+ph+'°',10,58);
+  document.getElementById('q-p0').textContent=p0+'%';
+  document.getElementById('q-p1').textContent=p1+'%';
+}
+
+function onQSlider(){
+  document.getElementById('q-th-v').textContent=document.getElementById('q-th').value+'°';
+  document.getElementById('q-ph-v').textContent=document.getElementById('q-ph').value+'°';
+  document.getElementById('q-noise-v').textContent=(+document.getElementById('q-noise').value).toFixed(2);
+  drawBloch();drawQSC();
+}
+
+async function runQiskit(){
+  const th=+document.getElementById('q-th').value,ph=+document.getElementById('q-ph').value,sh=+document.getElementById('q-sh').value;
+  try{
+    const r=await fetch(API+'/qubit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({theta:th,phi:ph,shots:sh})});
+    const d=await r.json();
+    document.getElementById('q-p0').textContent=(d.p0*100).toFixed(1)+'%';
+    document.getElementById('q-p1').textContent=(d.p1*100).toFixed(1)+'%';
+    const tot=d.c0+d.c1;
+    document.getElementById('h0').style.width=(d.c0/tot*100).toFixed(0)+'%';document.getElementById('h0').textContent=d.c0;
+    document.getElementById('h1').style.width=(d.c1/tot*100).toFixed(0)+'%';document.getElementById('h1').textContent=d.c1;
+    const cr=await fetch(API+'/collapse',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p0:d.p0,p1:d.p1})});
+    const col=await cr.json();
+    const el=document.getElementById('col-res');
+    el.textContent=col.state;el.style.color=col.result===0?'var(--c3)':'var(--c5o)';
+    el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1500);
+    document.getElementById('col-msg').textContent=col.result===0?'Qubit collapsed to |0⟩ — demodulation reads: 0':'Qubit collapsed to |1⟩ — demodulation reads: 1';
+    drawQuantumIQ(d.iq0,d.iq1,d.I_meas,d.Q_meas);
+  }catch(e){document.getElementById('col-msg').textContent='Backend offline — run: python app.py';}
+}
+
+// ── IQ PLANES ─────────────────────────────────────────────────────────────────
+function iqBase(id,H){
+  const c=document.getElementById(id);if(!c)return null;
+  const W=c.offsetWidth||270;c.width=W;c.height=H||230;
+  const ctx=c.getContext('2d'),cx=W/2,cy=H/2,r=Math.min(cx,cy)-22;
+  ctx.fillStyle='#fafaf6';ctx.fillRect(0,0,W,H);
+  [.33,.67,1].forEach(s=>{ctx.beginPath();ctx.arc(cx,cy,r*s,0,Math.PI*2);ctx.strokeStyle='#e8e4dc';ctx.lineWidth=.5+s*.5;ctx.stroke();});
+  ctx.strokeStyle='#ddd';ctx.lineWidth=.8;
+  ctx.beginPath();ctx.moveTo(cx-r-10,cy);ctx.lineTo(cx+r+10,cy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,cy-r-10);ctx.lineTo(cx,cy+r+10);ctx.stroke();
+  ctx.fillStyle='#bbb';ctx.font='12px IBM Plex Mono';ctx.fillText('I',cx+r+4,cy+4);ctx.fillText('Q',cx+3,cy-r-4);
+  return{ctx,cx,cy,r};
+}
+function drawIQPlane(){
+  if(!demodData)return;const q=iqBase('c-iq',230);if(!q)return;
+  const{ctx,cx,cy,r}=q;
+  const I=demodData.I_homo,Q=demodData.Q_homo,px=cx+I*r,py=cy-Q*r;
+  ctx.strokeStyle='rgba(0,122,110,.25)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(px,py);ctx.stroke();
+  ctx.beginPath();ctx.arc(px,py,9,0,Math.PI*2);ctx.fillStyle='#0a7a6e';ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='bold 10px IBM Plex Mono';ctx.textAlign='center';ctx.fillText('H',px,py+4);ctx.textAlign='left';
+  const I2=demodData.I_hetero,Q2=demodData.Q_hetero;
+  ctx.beginPath();ctx.arc(cx+I2*r,cy-Q2*r,9,0,Math.PI*2);ctx.fillStyle='#c94a00';ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='bold 10px IBM Plex Mono';ctx.textAlign='center';ctx.fillText('E',cx+I2*r,cy-Q2*r+4);ctx.textAlign='left';
+}
+function drawIQTrail(){
+  const q=iqBase('c-iqt',230);if(!q)return;const{ctx,cx,cy,r}=q;
+  iqTrail.forEach((pt,i)=>{const a=(i+1)/iqTrail.length;ctx.beginPath();ctx.arc(cx+pt.I*r,cy-pt.Q*r,4,0,Math.PI*2);ctx.fillStyle=`rgba(10,122,110,${a*.65})`;ctx.fill();});
+}
+function drawQuantumIQ(iq0,iq1,Im,Qm){
+  const q=iqBase('c-qiq',250);if(!q)return;const{ctx,cx,cy,r}=q;
+  ctx.setLineDash([6,4]);ctx.strokeStyle='rgba(138,96,0,.55)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cx,cy-r);ctx.lineTo(cx,cy+r);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#aaa';ctx.font='10px IBM Plex Mono';ctx.fillText('decision boundary',cx+4,cy-r*.8);
+  if(iq0)iq0.forEach(p=>{ctx.beginPath();ctx.arc(cx+p[0]*r,cy-p[1]*r,4,0,Math.PI*2);ctx.fillStyle='rgba(10,122,110,.45)';ctx.fill();});
+  if(iq1)iq1.forEach(p=>{ctx.beginPath();ctx.arc(cx+p[0]*r,cy-p[1]*r,4,0,Math.PI*2);ctx.fillStyle='rgba(201,74,0,.45)';ctx.fill();});
+  if(Im!==undefined){ctx.beginPath();ctx.arc(cx+Im*r,cy-Qm*r,10,0,Math.PI*2);ctx.fillStyle='#5b3fa6';ctx.fill();}
+  ctx.fillStyle='#0a7a6e';ctx.font='bold 12px IBM Plex Mono';ctx.fillText('|0⟩',cx+r*.45,cy-r*.5);
+  ctx.fillStyle='#c94a00';ctx.fillText('|1⟩',cx-r*.85,cy+r*.65);
+}
+
+// ── REC MODE TOGGLE ───────────────────────────────────────────────────────────
+let recMode='homo';
+
+function setRecMode(mode){
+  recMode=mode;
+  const isH=mode==='homo';
+  const color=isH?'var(--c3)':'var(--c5o)';
+  const colorL=isH?'var(--c3l)':'var(--c5ol)';
+  const colorM=isH?'var(--c3m)':'#f5c9a8';
+
+  // Toggle buttons
+  const bh=document.getElementById('btn-homo'),be=document.getElementById('btn-hetero');
+  bh.style.background=isH?'var(--c3)':'transparent';
+  bh.style.borderColor=isH?'var(--c3)':'var(--border)';
+  bh.style.color=isH?'#fff':'var(--ink3)';
+  be.style.background=!isH?'var(--c5o)':'transparent';
+  be.style.borderColor=!isH?'var(--c5o)':'var(--border)';
+  be.style.color=!isH?'#fff':'var(--ink3)';
+
+  // Card accent colors
+  ['rec-main-card','rec-bin-card','rec-scope-card','rec-explain-card'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.style.borderLeftColor=color;
+  });
+
+  // Title and scope label
+  const title=document.getElementById('rec-path-title');
+  if(title)title.textContent=(isH?'Homodyne':'Heterodyne')+' — recovered message';
+  const scopeLbl=document.getElementById('rec-scope-lbl');
+  if(scopeLbl)scopeLbl.textContent=(isH?'HOMODYNE':'HETERODYNE')+' · RECOVERED BASEBAND';
+
+  // Explanation panel
+  const expCard=document.getElementById('rec-explain-card');
+  const expEl=document.getElementById('rec-explain');
+  if(expCard&&expEl){
+    expCard.style.borderLeftColor=color;
+    expEl.innerHTML=isH
+      ?`<strong style="color:var(--c3)">Homodyne</strong> uses a low-pass filter that collapses the signal to a single DC value. This means only the <strong>phase</strong> of the signal is recovered — amplitude information is permanently discarded. Fewer bit errors, but a one-dimensional view of the signal.`
+      :`<strong style="color:var(--c5o)">Heterodyne</strong> preserves the IF wave after band-pass filtering. The IF envelope carries <strong>amplitude</strong> and the IF timing carries <strong>phase</strong> — both recovered simultaneously. More bit errors due to wider bandwidth, but a complete two-dimensional picture of the signal.`;
+  }
+
+  updateRecovered();
+}
+
+// ── RECOVERED ─────────────────────────────────────────────────────────────────
+function updateRecovered(){
+  if(!modData||!demodData)return;
+  const noise=+document.getElementById('noise').value;
+  const orig=modData.bits;
+  const snr=parseFloat(document.getElementById('snr-v').textContent)||99;
+  const isH=recMode==='homo';
+  const color=isH?'var(--c3)':'var(--c5o)';
+  const colorL=isH?'var(--c3l)':'var(--c5ol)';
+  const colorM=isH?'var(--c3m)':'#f5c9a8';
+
+  // Physically correct erfc-based BER model
+  function erfc(x){
+    const t=1/(1+0.3275911*Math.abs(x));
+    const poly=t*(0.254829592+t*(-0.284496736+t*(1.421413741+t*(-1.453152027+t*1.061405429))));
+    const result=poly*Math.exp(-x*x);
+    return x>=0?result:2-result;
+  }
+  const snrLinear=Math.pow(10,snr/10);
+  const snrH=snrLinear*2.0; // homodyne: ~3dB advantage from narrowband LPF
+  const snrE=snrLinear*1.0; // heterodyne: base SNR
+  const erH=noise>0?Math.max(0,0.5*erfc(Math.sqrt(snrH/20))):0;
+  const erE=noise>0?Math.max(0,0.5*erfc(Math.sqrt(snrE/20))):0;
+  const er=isH?erH:erE;
+
+  const seed=isH
+    ?Math.abs(Math.round(demodData.I_homo*10000+demodData.Q_homo*1000))
+    :Math.abs(Math.round(demodData.I_hetero*10000+demodData.Q_hetero*1000));
+  function seededRand(i){const x=Math.sin(seed+i*127.1)*43758.5453;return x-Math.floor(x);}
+  const recv=orig.map((b,i)=>seededRand(i)<er?1-b:b);
+  const errs=recv.filter((b,i)=>b!==orig[i]).length;
+  const ber=orig.length?(errs/orig.length*100).toFixed(1):0;
+
+  // Decode message
+  let text='';
+  for(let i=0;i+8<=recv.length;i+=8){const c=parseInt(recv.slice(i,i+8).join(''),2);text+=(c>=32&&c<127)?String.fromCharCode(c):'?';}
+  const msg=document.getElementById('msg').value||'A';
+
+  // Recovered message
+  const rm=document.getElementById('rec-msg');
+  if(rm){rm.textContent=text||'—';rm.style.color=errs>0?'#b81c1c':color;rm.style.borderColor=errs>0?'#f5c9a8':colorM;rm.style.background=errs>0?'#fff8f6':colorL;}
+
+  document.getElementById('r-orig').textContent=msg;
+  document.getElementById('r-err').textContent=errs;
+  document.getElementById('r-ber').textContent=ber+'%';
+
+  // Binary comparison
+  let sh='',rh='';
+  for(let i=0;i<orig.length;i++){
+    if(i>0&&i%8===0){sh+=' ';rh+=' ';}
+    sh+=orig[i]===1?`<span style="color:var(--c7);font-weight:600">1</span>`:`<span style="color:#888">0</span>`;
+    const ok=recv[i]===orig[i];
+    rh+=recv[i]===1
+      ?`<span style="color:${ok?color:'#b81c1c'};font-weight:600${ok?'':';text-decoration:underline'}">1</span>`
+      :`<span style="color:${ok?'#888':'#b81c1c'}${ok?'':';font-weight:600;text-decoration:underline'}">0</span>`;
+  }
+  document.getElementById('r-sent').innerHTML=sh;
+  document.getElementById('r-recv').innerHTML=rh;
+  setD('wf-rec',recv.map(b=>+b));
+
+  // Draw side-by-side comparison
+  drawComparison(orig,noise,snr);
+}
+
+function drawComparison(orig,noise,snr){
+  const c=document.getElementById('c-compare');if(!c||!demodData)return;
+  const W=c.offsetWidth||600;c.width=W;const H=240;c.height=H;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#fafaf6';ctx.fillRect(0,0,W,H);
+
+  // Compute both paths
+  function erfc(x){const t=1/(1+0.3275911*Math.abs(x));const p=t*(0.254829592+t*(-0.284496736+t*(1.421413741+t*(-1.453152027+t*1.061405429))));const r=p*Math.exp(-x*x);return x>=0?r:2-r;}
+  const snrLin=Math.pow(10,snr/10);
+  const erH=noise>0?Math.max(0,0.5*erfc(Math.sqrt(snrLin*2.0/20))):0;
+  const erE=noise>0?Math.max(0,0.5*erfc(Math.sqrt(snrLin*1.0/20))):0;
+  const seedH=Math.abs(Math.round(demodData.I_homo*10000+demodData.Q_homo*1000));
+  const seedE=Math.abs(Math.round(demodData.I_hetero*10000+demodData.Q_hetero*1000));
+  function sr(seed,i){const x=Math.sin(seed+i*127.1)*43758.5453;return x-Math.floor(x);}
+  const recvH=orig.map((b,i)=>sr(seedH,i)<erH?1-b:b);
+  const recvE=orig.map((b,i)=>sr(seedE,i)<erE?1-b:b);
+  const errsH=recvH.filter((b,i)=>b!==orig[i]).length;
+  const errsE=recvE.filter((b,i)=>b!==orig[i]).length;
+  let textH='',textE='';
+  for(let i=0;i+8<=recvH.length;i+=8){const cc=parseInt(recvH.slice(i,i+8).join(''),2);textH+=(cc>=32&&cc<127)?String.fromCharCode(cc):'?';}
+  for(let i=0;i+8<=recvE.length;i+=8){const cc=parseInt(recvE.slice(i,i+8).join(''),2);textE+=(cc>=32&&cc<127)?String.fromCharCode(cc):'?';}
+  const ampE=Math.sqrt(demodData.I_hetero**2+demodData.Q_hetero**2).toFixed(3);
+  const phaseH=(Math.atan2(demodData.Q_homo,demodData.I_homo)*180/Math.PI).toFixed(1);
+  const phaseE=(Math.atan2(demodData.Q_hetero,demodData.I_hetero)*180/Math.PI).toFixed(1);
+
+  const hw=W/2-1;
+  ctx.textAlign='center';
+
+  // ── HOMODYNE HALF ──
+  ctx.fillStyle='rgba(10,122,110,.06)';ctx.fillRect(0,0,hw,H);
+  ctx.fillStyle='#0a7a6e';ctx.font='bold 13px IBM Plex Mono';
+  ctx.fillText('HOMODYNE',hw/2,22);
+  ctx.fillStyle='#888';ctx.font='10px IBM Plex Mono';
+  ctx.fillText('Phase only · Lower BER',hw/2,38);
+
+  // Recovered message
+  ctx.font='bold 38px DM Serif Display';
+  ctx.fillStyle=errsH>0?'#b81c1c':'#0a7a6e';
+  ctx.fillText(textH||'—',hw/2,88);
+
+  // Bit errors + BER
+  ctx.font='bold 11px IBM Plex Mono';
+  ctx.fillStyle=errsH>0?'#b81c1c':'#0a7a6e';
+  ctx.fillText(`${errsH} bit error${errsH!==1?'s':''}  ·  BER ${orig.length?(errsH/orig.length*100).toFixed(1):0}%`,hw/2,108);
+
+  // Phase pill — green
+  ctx.fillStyle='rgba(10,122,110,.14)';
+  ctx.beginPath();ctx.roundRect(hw/2-75,120,150,24,4);ctx.fill();
+  ctx.fillStyle='#0a7a6e';ctx.font='bold 11px IBM Plex Mono';
+  ctx.fillText(`Phase: ${phaseH}°  ✔  recovered`,hw/2,136);
+
+  // Amplitude pill — red cross
+  ctx.fillStyle='rgba(184,28,28,.1)';
+  ctx.beginPath();ctx.roundRect(hw/2-75,152,150,24,4);ctx.fill();
+  ctx.fillStyle='#b81c1c';ctx.font='bold 11px IBM Plex Mono';
+  ctx.fillText('Amplitude: ——  ✘  not captured',hw/2,168);
+
+  ctx.fillStyle='#bbb';ctx.font='10px IBM Plex Mono';
+  ctx.fillText('1-dimensional readout',hw/2,200);
+
+  ctx.fillStyle='#888';ctx.font='italic 10px IBM Plex Sans';
+  ctx.fillText('LPF discards amplitude permanently',hw/2,218);
+
+  // ── DIVIDER ──
+  ctx.strokeStyle='#d0ccc4';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(W/2,8);ctx.lineTo(W/2,H-8);ctx.stroke();
+
+  // ── HETERODYNE HALF ──
+  ctx.fillStyle='rgba(201,74,0,.06)';ctx.fillRect(W/2+1,0,hw,H);
+  ctx.fillStyle='#c94a00';ctx.font='bold 13px IBM Plex Mono';
+  ctx.fillText('HETERODYNE',W/2+hw/2,22);
+  ctx.fillStyle='#888';ctx.font='10px IBM Plex Mono';
+  ctx.fillText('Amplitude + Phase · Higher BER',W/2+hw/2,38);
+
+  // Recovered message
+  ctx.font='bold 38px DM Serif Display';
+  ctx.fillStyle=errsE>0?'#b81c1c':'#1a6b3a';
+  ctx.fillText(textE||'—',W/2+hw/2,88);
+
+  // Bit errors + BER
+  ctx.font='bold 11px IBM Plex Mono';
+  ctx.fillStyle=errsE>0?'#b81c1c':'#1a6b3a';
+  ctx.fillText(`${errsE} bit error${errsE!==1?'s':''}  ·  BER ${orig.length?(errsE/orig.length*100).toFixed(1):0}%`,W/2+hw/2,108);
+
+  // Phase pill — orange
+  ctx.fillStyle='rgba(201,74,0,.12)';
+  ctx.beginPath();ctx.roundRect(W/2+hw/2-75,120,150,24,4);ctx.fill();
+  ctx.fillStyle='#c94a00';ctx.font='bold 11px IBM Plex Mono';
+  ctx.fillText(`Phase: ${phaseE}°  ✔  recovered`,W/2+hw/2,136);
+
+  // Amplitude pill — orange
+  ctx.fillStyle='rgba(201,74,0,.12)';
+  ctx.beginPath();ctx.roundRect(W/2+hw/2-75,152,150,24,4);ctx.fill();
+  ctx.fillStyle='#c94a00';ctx.font='bold 11px IBM Plex Mono';
+  ctx.fillText(`Amplitude: ${ampE}  ✔  recovered`,W/2+hw/2,168);
+
+  ctx.fillStyle='#bbb';ctx.font='10px IBM Plex Mono';
+  ctx.fillText('2-dimensional readout',W/2+hw/2,200);
+
+  ctx.fillStyle='#888';ctx.font='italic 10px IBM Plex Sans';
+  ctx.fillText('IF envelope preserves amplitude',W/2+hw/2,218);
+
+  ctx.textAlign='left';
+}
+
+function resizeAll(){for(const id in SC){const c=document.getElementById(id);if(c&&c.offsetParent!==null)drawScope(id);}for(const fid in FFT_PAIRS){const c=document.getElementById(fid);if(c&&c.offsetParent!==null)drawFFT(fid,FFT_PAIRS[fid]);}}
+window.addEventListener('resize',resizeAll);
+
+// roundRect polyfill for older browsers
+if(!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
+    this.beginPath();this.moveTo(x+r,y);this.lineTo(x+w-r,y);this.quadraticCurveTo(x+w,y,x+w,y+r);
+    this.lineTo(x+w,y+h-r);this.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    this.lineTo(x+r,y+h);this.quadraticCurveTo(x,y+h,x,y+h-r);
+    this.lineTo(x,y+r);this.quadraticCurveTo(x,y,x+r,y);this.closePath();
+    return this;
+  };
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+onMsg();drawBloch();drawQSC();drawQuantumIQ(null,null);updateModCalc();setRecMode('homo');
+
+/* ═══════════════════════════════════════════════════
+   ENHANCEMENT JS
+═══════════════════════════════════════════════════ */
+
+/* ── Button ripple ── */
+document.querySelectorAll('button').forEach(btn=>{
+  btn.addEventListener('click',function(e){
+    const r=document.createElement('span');r.className='ripple';
+    const rect=this.getBoundingClientRect(),size=Math.max(rect.width,rect.height)*2;
+    r.style.cssText=`width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px`;
+    this.appendChild(r);setTimeout(()=>r.remove(),600);
+  });
+});
+
+/* ── Slider live fill + thumb glow ── */
+function fillSlider(el){
+  const pct=((el.value-el.min)/(el.max-el.min)*100).toFixed(1);
+  el.style.setProperty('--fill',pct+'%');
+}
+document.querySelectorAll('input[type=range]').forEach(el=>{
+  fillSlider(el);
+  el.addEventListener('input',()=>fillSlider(el));
+});
+
+/* ── Calc value pop on change ── */
+const _origUpdateModCalc=updateModCalc;
+updateModCalc=function(){
+  _origUpdateModCalc();
+  ['lc-fc','lc-bw','lc-mi','lc-sp','lc-br','lc-se'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');
+  });
+};
+
+const _origUpdateFilterCalc=updateFilterCalc;
+updateFilterCalc=function(){
+  _origUpdateFilterCalc();
+  ['fc-dc','fc-ph','fc-if','fc-ia','fc-snr','fc-iq'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');
+  });
+};
+
+/* ── Stat value pop ── */
+const statObs=new MutationObserver(muts=>{
+  muts.forEach(m=>{
+    const sv=m.target.closest('.sv');
+    if(sv){sv.classList.remove('pop');void sv.offsetWidth;sv.classList.add('pop');}
+  });
+});
+document.querySelectorAll('.sv').forEach(sv=>statObs.observe(sv,{characterData:true,childList:true,subtree:true}));
+
+/* ── Rec-msg pop ── */
+const _origUpdateRecovered=updateRecovered;
+updateRecovered=function(){
+  _origUpdateRecovered();
+  const rm=document.getElementById('rec-msg');
+  if(rm){rm.classList.remove('pop');void rm.offsetWidth;rm.classList.add('pop');}
+};
+
+/* ── SNR color smooth transition ── */
+const snrEl=document.getElementById('snr-v');
+if(snrEl)snrEl.style.transition='color .4s';
+
+/* ── BER bit hover ── */
+['ber-grid-homo','ber-grid-hetero'].forEach(gid=>{
+  const g=document.getElementById(gid);
+  if(!g)return;
+  new MutationObserver(()=>{
+    g.querySelectorAll('.bb:not([data-enh])').forEach(b=>{
+      b.setAttribute('data-enh','1');
+      b.style.transition='transform .1s,box-shadow .1s';
+      b.addEventListener('mouseenter',()=>{b.style.transform='scale(1.4)';b.style.position='relative';b.style.zIndex='2';});
+      b.addEventListener('mouseleave',()=>{b.style.transform='';b.style.zIndex='';});
+    });
+  }).observe(g,{childList:true});
+});
+
+/* ── Scroll to top on tab switch ── */
+const _origGoTab=goTab;
+goTab=function(i){
+  _origGoTab(i);
+  const c=document.querySelector('.content');
+  if(c)setTimeout(()=>c.scrollTo({top:0,behavior:'smooth'}),30);
+};
+
+/* ── Keyboard 1-7 ── */
+document.addEventListener('keydown',e=>{
+  const n=parseInt(e.key);
+  if(n>=1&&n<=7&&!e.ctrlKey&&!e.metaKey&&document.activeElement.tagName!=='INPUT')goTab(n-1);
+});
+
+/* ── Live clock ── */
+const clockWrap=document.querySelector('.top-meta');
+const clockEl=document.createElement('div');
+clockEl.style.cssText='font-family:var(--mono);font-size:9px;color:#4a5568;letter-spacing:1px;margin-top:2px';
+if(clockWrap)clockWrap.appendChild(clockEl);
+function tick(){const n=new Date();clockEl.textContent=n.toLocaleTimeString('en-GB',{hour12:false});}
+tick();setInterval(tick,1000);
+
+/* ── Card subtle 3-D tilt ── */
+document.querySelectorAll('.card').forEach(card=>{
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect();
+    const x=(e.clientX-r.left)/r.width-.5;
+    const y=(e.clientY-r.top)/r.height-.5;
+    card.style.transform=`translateY(-2px) rotateX(${(-y*2.5).toFixed(2)}deg) rotateY(${(x*2.5).toFixed(2)}deg)`;
+    card.style.perspective='900px';
+  });
+  card.addEventListener('mouseleave',()=>{card.style.transform='';card.style.perspective='';});
+});
+
+/* ── Scope border color pulse ── */
+setInterval(()=>{
+  document.querySelectorAll('.tp.on .scope').forEach((s,i)=>{
+    const v=22+Math.round(Math.sin(Date.now()*.0008+i)*(10));
+    s.style.borderColor=`rgb(${v},${v+18},${v})`;
+  });
+  document.querySelectorAll('.tp.on .fft-c').forEach((f,i)=>{
+    const v=22+Math.round(Math.sin(Date.now()*.0006+i)*(8));
+    f.style.borderColor=`rgb(${v},${v},${v+28})`;
+  });
+},100);
+
+/* ── Bloch sphere glow on hover ── */
+const blochCv=document.getElementById('bloch');
+if(blochCv){
+  blochCv.style.transition='filter .3s';
+  blochCv.addEventListener('mouseenter',()=>blochCv.style.filter='drop-shadow(0 0 10px rgba(139,92,246,.4))');
+  blochCv.addEventListener('mouseleave',()=>blochCv.style.filter='');
+}
+
+/* ── SNR flash stats on transmit ── */
+const _origOnMod=onMod;
+onMod=async function(){
+  await _origOnMod();
+  document.querySelectorAll('.stat').forEach((s,i)=>{
+    setTimeout(()=>{
+      s.style.transition='transform .15s';
+      s.style.transform='scale(1.05)';
+      setTimeout(()=>s.style.transform='',200);
+    },i*25);
+  });
+};
+
+/* ── Message input highlight ── */
+const msgEl=document.getElementById('msg');
+if(msgEl){
+  msgEl.addEventListener('input',function(){
+    this.style.borderColor='var(--c2)';
+    clearTimeout(this._t);
+    this._t=setTimeout(()=>this.style.borderColor='',700);
+  });
+}
+
+/* ── Tab indicator dot ── */
+document.querySelectorAll('.tb').forEach(tb=>{
+  const dot=document.createElement('span');
+  dot.style.cssText='position:absolute;top:8px;right:7px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:0;transition:opacity .2s';
+  tb.style.position='relative';tb.appendChild(dot);
+  const obs=new MutationObserver(()=>dot.style.opacity=tb.classList.contains('on')?'.5':'0');
+  obs.observe(tb,{attributes:true,attributeFilter:['class']});
+});
+</script>
+</body>
+</html>
