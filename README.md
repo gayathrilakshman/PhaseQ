@@ -1,2 +1,2 @@
 # PhaseQ
-Signal Demodulation Visual Lab
+Signal Demodulation Visual Lab: Homodyne vs Heterodyne
